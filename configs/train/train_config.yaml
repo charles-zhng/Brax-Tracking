@@ -1,0 +1,15 @@
+env_name: rodent_single_clip
+algo_name: ppo
+task_name: track
+note: 
+num_envs: 128
+num_timesteps: 3_000_000_000
+eval_every: 204_800
+episode_length: 250
+batch_size: 128
+learning_rate: 3e-4
+num_minibatches: 32
+num_updates_per_batch: 16
+clipping_epsilon: 0.3
+entropy_cost: 1e-3
+mlp_policy_layer_sizes: [256, 256]
