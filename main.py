@@ -19,7 +19,7 @@ from brax.training.agents.ppo import networks as ppo_networks
 from custom_brax import custom_ppo as ppo
 from custom_brax import custom_wrappers
 from preprocessing.preprocess import process_clip_to_train
-from envs.fruitfly import Fruitfly_Tethered
+from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Tethered_Free
 from utils.utils import *
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -40,7 +40,8 @@ os.environ["XLA_FLAGS"] = (
 )
 
 
-envs.register_environment("fly_single_clip", Fruitfly_Tethered)
+# envs.register_environment("fly_single_clip", Fruitfly_Tethered)
+envs.register_environment("fly_single_clip", Fruitfly_Tethered_Free)
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
@@ -114,7 +115,7 @@ def main(cfg: DictConfig) -> None:
     run_id = uuid.uuid4()
     model_path = cfg.paths.ckpt_dir / f"./{run_id}"
 
-    run = wandb.init(dir=cfg.paths.log_dir, project="eabe_debug", config=OmegaConf.to_container(cfg), notes="Tethered")
+    run = wandb.init(dir=cfg.paths.log_dir, project=cfg.train.wandb_project, config=OmegaConf.to_container(cfg), notes="Tethered")
 
     wandb.run.name = (
         f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{run_id}"

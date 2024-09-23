@@ -85,7 +85,6 @@ class RenderRolloutWrapperTracking(Wrapper):
     def reset(self, rng: jax.Array) -> State:
         rng, rng1, rng2 = jax.random.split(rng, 3)
         info = {
-            "start_frame": 0,
             "cur_frame": 0,
             "steps_taken_cur_frame": 0,
             "summed_pos_distance": 0.0,
