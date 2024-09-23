@@ -6,7 +6,7 @@ clip_idx: 0
 clip_length: 250
 ref_traj_length: 5
 env_args:
-  mjcf_path: "./assets/fruitfly/fruitfly_force.xml" # add logic from vnl
+  mjcf_path: "./assets/fruitfly/fruitfly_force_fast.xml" # add logic from vnl
   scale_factor: 1 # add logic from vnl
   solver: cg
   iterations: 4

@@ -112,7 +112,7 @@ def main(cfg: DictConfig) -> None:
 
     # Generates a completely random UUID (version 4)
     run_id = uuid.uuid4()
-    model_path = f"./model_checkpoints/{run_id}"
+    model_path = cfg.paths.ckpt_dir / f"./{run_id}"
 
     run = wandb.init(dir=cfg.paths.log_dir, project="eabe_debug", config=OmegaConf.to_container(cfg), notes="Tethered")
 
@@ -243,31 +243,8 @@ def main(cfg: DictConfig) -> None:
         else:
             qposes_ref = np.repeat(np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),env._steps_for_cur_frame,axis=0,)
 
-        # Trying to align them when using the reset wrapper...
-        # Doesn't work bc reset wrapper handles the done under the hood so it's always 0 :(
-        # done_array = np.array([state.done for state in rollout])
-        # reset_indices = np.where(done_array == 1.0)[0]
-        # if reset_indices.shape[0] == 0:
-        #     aligned_traj = qposes_ref
-        # else:
-        #     aligned_traj = np.zeros_like(qposes_rollout)
-        #     # Set the first segment
-        #     aligned_traj[: reset_indices[0] + 1] = qposes_ref[: reset_indices[0] + 1]
 
-        #     # Iterate through reset points
-        #     for i in range(len(reset_indices) - 1):
-        #         start = reset_indices[i] + 1
-        #         end = reset_indices[i + 1] + 1
-        #         length = end - start
-        #         aligned_traj[start:end] = qposes_ref[:length]
-
-        #     # Set the last segment
-        #     if reset_indices[-1] < len(done_array) - 1:
-        #         start = reset_indices[-1] + 1
-        #         length = len(done_array) - start
-        #         aligned_traj[start:] = qposes_ref[:length]
-
-        mj_model = mujoco.MjModel.from_xml_path(f"./assets/fruitfly/fruitfly_force_pair.xml")
+        mj_model = mujoco.MjModel.from_xml_path("./assets/fruitfly/fruitfly_force_pair.xml")
 
         mj_model.opt.solver = {
             "cg": mujoco.mjtSolver.mjSOL_CG,
