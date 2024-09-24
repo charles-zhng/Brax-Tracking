@@ -1,12 +1,12 @@
 name: Flybody
 camera: 1
-rendering_mjcf: fruitly_force_pair.xml
+rendering_mjcf: ./assets/fruitfly/fruitly_force_pair.xml
 stac_path: ${paths.data_dir}/transform_mocap_fly_freejnt.p
 clip_idx: 0
 clip_length: 250
 ref_traj_length: 5
 env_args:
-  mjcf_path: "./assets/fruitfly/fruitfly_force_fast.xml" # add logic from vnl
+  mjcf_path: "./assets/fruitfly/fruitfly_force_fast_freejnt.xml" # add logic from vnl
   scale_factor: 1 # add logic from vnl
   solver: cg
   iterations: 4

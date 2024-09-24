@@ -116,7 +116,7 @@ def main(cfg: DictConfig) -> None:
     run_id = uuid.uuid4()
     model_path = cfg.paths.ckpt_dir / f"./{run_id}"
 
-    run = wandb.init(dir=cfg.paths.log_dir, project=cfg.train.wandb_project, config=OmegaConf.to_container(cfg), notes="Tethered with freejnt")
+    run = wandb.init(dir=cfg.paths.log_dir, project=cfg.train.wandb_project, config=OmegaConf.to_container(cfg), notes=cfg.train.note)
 
     wandb.run.name = (
         f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{run_id}"
@@ -276,8 +276,7 @@ def main(cfg: DictConfig) -> None:
         else:
             qposes_ref = np.repeat(np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),env._steps_for_cur_frame,axis=0,)
 
-
-        mj_model = mujoco.MjModel.from_xml_path("./assets/fruitfly/fruitfly_force_pair.xml")
+        mj_model = mujoco.MjModel.from_xml_path(cfg.dataset.rendering_mjcf)
 
         mj_model.opt.solver = {
             "cg": mujoco.mjtSolver.mjSOL_CG,
