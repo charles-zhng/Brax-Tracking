@@ -7,7 +7,7 @@ import imageio
 import mujoco
 from brax import envs
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
 
 # from brax.training.agents.ppo import train as ppo
 import numpy as np
@@ -42,7 +42,7 @@ os.environ["XLA_FLAGS"] = (
 
 
 envs.register_environment("fly_single_clip", Fruitfly_Tethered)
-# envs.register_environment("fly_single_clip", Fruitfly_Tethered_Free)
+envs.register_environment("fly_single_clip_freejnt", Fruitfly_Tethered_Free)
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
