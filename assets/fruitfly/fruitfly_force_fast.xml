@@ -1,9 +1,9 @@
 <mujoco model="fruitfly">
   <compiler autolimits="true" angle="radian"/>
 
-  <option gravity="0 0 -981" density="0.00128" viscosity="0.000185" cone="elliptic" noslip_iterations="3"/>
+  <option gravity="0 0 -9.81" density="0.00128" viscosity="0.000185" cone="elliptic" noslip_iterations="3"/>
 
-  <size njmax="300" nconmax="100" nkey="1"/>
+  <size nkey="1"/>
 
   <default>
     <mesh scale="0.1 0.1 0.1"/>
@@ -90,7 +90,7 @@
         <joint axis="1 0 0" springdamper="0.005 0.1" range="-0.2 0.2"/>
       </default>
       <default class="leg">
-        <joint stiffness="0.01"/> <!-- damping="1"-->
+        <joint stiffness="0.01" damping="1"/> 
         <geom density="1.21"/>
         <default class="coxa">
           <!-- <general gainprm="0.8"/> -->
@@ -144,7 +144,7 @@
             </default>
           </default>
           <default class="extend_femur">
-            <joint axis="1 0 0" range="-0.15 2"/> <!-- damping="1.5"-->
+            <joint axis="1 0 0" range="-0.15 2" damping="1.5"/> 
             <default class="extend_femur_T1">
               <general ctrlrange="-10 10" ctrllimited="true"/>
             </default>
@@ -153,7 +153,7 @@
             </default>
           </default>
           <default class="extend_femur_T3">
-            <joint axis="1 0 0" range="-0.7 1.5"/> <!-- damping="1.5"-->
+            <joint axis="1 0 0" range="-0.7 1.5" damping="1.5"/> 
             <general ctrlrange="-10 10" ctrllimited="true"/>
           </default>
         </default>
@@ -161,7 +161,7 @@
           <!-- <joint damping="0.004"/> -->
           <!-- <general gainprm="0.4"/> -->
           <default class="extend_tibia">
-            <joint axis="1 0 0" range="-1.35 1.3"/> <!-- damping="3"-->
+            <joint axis="1 0 0" range="-1.35 1.3" damping="3"/> 
             <general ctrlrange="-10 10" ctrllimited="true"/>
             <default class="extend_tibia_T2">
               <general ctrlrange="-10 10" ctrllimited="true"/>
@@ -175,19 +175,19 @@
           <joint axis="1 0 0"/>
           <!-- <general gainprm="0.4"/> -->
           <default class="extend_tarsus_T1">
-            <joint range="-0.7 1.2"/> <!-- damping="3"-->
+            <joint range="-0.7 1.2" damping="3"/> 
             <general ctrlrange="-10 10" ctrllimited="true"/>
           </default>
           <default class="extend_tarsus_T2">
-            <joint range="-1 1.8"/> <!-- damping="3"-->
+            <joint range="-1 1.8" damping="3"/> 
             <general ctrlrange="-10 10" ctrllimited="true"/>
           </default>
           <default class="extend_tarsus_T3">
-            <joint range="-0.8 1.2"/> <!-- damping="3"-->
+            <joint range="-0.8 1.2" damping="3"/> 
             <general ctrlrange="-10 10" ctrllimited="true"/>
           </default>
           <default class="extend_tarsus">
-            <joint group="3" stiffness="0.1" range="-0.36 0.36" /> <!-- damping=".002" -->
+            <joint group="3" stiffness="0.1" range="-0.36 0.36"  damping=".002"/> 
             <general ctrlrange="-10 10" ctrllimited="true"/>
           </default>
         </default>
@@ -308,7 +308,7 @@
   </asset>
 
   <worldbody>
-    <geom name="floor" type="plane" size="5 5 .1" material="grid" pos="0 0 -.137" solref="0.0002 1"/>
+    <geom name="floor" type="plane" size="5 5 .1" material="grid" pos="0 0 -.15"/>
     <body name="thorax" childclass="body">
       <freejoint name="free"/>
       <light name="right" mode="trackcom" pos="0 -1 1" dir="0 1 -1" diffuse="0.3 0.3 0.3"/>
@@ -323,15 +323,15 @@
       <site name="thorax"/>
       <site name="hover_up_dir" pos="0.0262 0 0.0262" quat="0.915 0 0.403 0"/>
       <geom name="thorax" mass="0.00034" pos="-0.00791 0 -0.123" quat="0 0 0 -1" mesh="thorax"/>
-      <!-- <geom name="thorax_collision" class="collision" type="ellipsoid" size="0.0437 0.0437 0.0551" pos="0.00168 0 -0.00262" quat="0 -0.479 0 -0.878"/>
-      <geom name="thorax_collision2" class="collision" type="ellipsoid" size="0.0499 0.028 0.0114" pos="-0.00445 0 0.0219" quat="0 -0.199 0 -0.98"/> -->
+      <geom name="thorax_collision" class="collision" type="ellipsoid" size="0.0437 0.0437 0.0551" pos="0.00168 0 -0.00262" quat="0 -0.479 0 -0.878" contype="0" conaffinity="0"/>
+      <geom name="thorax_collision2" class="collision" type="ellipsoid" size="0.0499 0.028 0.0114" pos="-0.00445 0 0.0219" quat="0 -0.199 0 -0.98" contype="0" conaffinity="0"/>
       <geom name="thorax_black" material="black" mass="0" pos="-0.00791 0 -0.123" quat="0 0 0 -1" mesh="thorax_black"/>
       <body name="head" childclass="head" pos="0.0567 3.81e-07 -0.00305" quat="0.702 -0.087 0.087 -0.702">
         <site name="head" pos="0 0.015 0" quat="0 0 0 1"/>
         <!-- <joint name="head_abduct" axis="0 0 1" range="-0.2 0.2"/>
         <joint name="head_twist" axis="0 1 0" range="-3 3"/>
         <joint name="head" axis="1 0 0" range="-0.5 0.3"/> -->
-        <!-- <geom name="head_collision" class="collision" type="ellipsoid" size="0.0455 0.0262 0.0324" pos="0 0.0149 0.000875" euler="0.3 0 0"/> -->
+        <geom name="head_collision" class="collision" type="ellipsoid" size="0.0455 0.0262 0.0324" pos="0 0.0149 0.000875" euler="0.3 0 0" contype="0" conaffinity="0"/>
         <geom name="head" pos="4.11e-07 -0.0334 -0.132" quat="0.702 0.087 0.087 -0.702" mesh="head"/>
         <geom name="head_red" material="red" pos="4.11e-07 -0.0334 -0.132" quat="0.702 0.087 0.087 -0.702" mesh="head_red"/>
         <geom name="head_ocelli" material="ocelli" pos="4.11e-07 -0.0334 -0.132" quat="0.702 0.087 0.087 -0.702" mesh="head_ocelli"/>
@@ -341,25 +341,25 @@
         <body name="rostrum" pos="0 0.0368 -0.0235" quat="2.2e-07 -1.21e-07 0.192 -0.981">
           <!-- <joint name="rostrum" axis="1 0 0" range="-1.24 0.183" springref="0.8"/> -->
           <geom name="rostrum" pos="-4e-07 0.106 -0.0742" quat="0.705 0.0494 -0.0494 0.705" mesh="rostrum"/>
-          <!-- <geom name="rostrum_collision_right" class="collision" size="0.0035" fromto="0.00613 0.0324 0 0.0114 0.0245 -0.0236"/>
-          <geom name="rostrum_collision_left" class="collision" size="0.0035" fromto="-0.00613 0.0324 0 -0.0114 0.0245 -0.0236"/>
-          <geom name="rostrum_collision" class="collision" type="ellipsoid" size="0.0131 0.0219 0.0131" pos="0 0.0175 0.00263" euler="0.1 0 0"/> -->
+          <geom name="rostrum_collision_right" class="collision" size="0.0035" fromto="0.00613 0.0324 0 0.0114 0.0245 -0.0236" contype="0" conaffinity="0"/>
+          <geom name="rostrum_collision_left" class="collision" size="0.0035" fromto="-0.00613 0.0324 0 -0.0114 0.0245 -0.0236" contype="0" conaffinity="0"/>
+          <geom name="rostrum_collision" class="collision" type="ellipsoid" size="0.0131 0.0219 0.0131" pos="0 0.0175 0.00263" euler="0.1 0 0" contype="0" conaffinity="0"/>
           <geom name="rostrum_bristle-brown" material="bristle-brown" pos="-4e-07 0.106 -0.0742" quat="0.705 0.0494 -0.0494 0.705" mesh="rostrum_bristle-brown"/>
           <body name="haustellum" pos="0 0.0377 0" quat="2.33e-07 -1.56e-07 -0.347 0.938">
             <!-- <joint name="haustellum_abduct" axis="0 0 1" range="-0.0873 0.0873"/>
             <joint name="haustellum" axis="1 0 0" range="-1.59 0.7" springref="0.8"/> -->
             <geom name="haustellum" pos="4.24e-07 -0.00352 -0.101" quat="0.679 0.198 0.198 -0.679" mesh="haustellum"/>
-            <!-- <geom name="haustellum_collision" class="collision" type="capsule" size="0.00788 0.00788" pos="0 0.0123 -0.000948" quat="0.633 0.774 0 0"/> -->
+            <geom name="haustellum_collision" class="collision" type="capsule" size="0.00788 0.00788" pos="0 0.0123 -0.000948" quat="0.633 0.774 0 0" contype="0" conaffinity="0"/>
             <geom name="haustellum_black" material="black" mass="0" pos="4.24e-07 -0.00352 -0.101" quat="0.679 0.198 0.198 -0.679" mesh="haustellum_black"/>
             <body name="labrum_left" childclass="labrum" pos="-0.00263 0.0182 0" quat="0.741 -0.0142 -0.591 0.319">
               <!-- <joint name="labrum_left" axis="1 0 0" range="-0.00524 1.05"/> -->
               <geom name="labrum_left_lower" material="lower" pos="-0.0977 0.0216 -0.0249" quat="-0.166 0.181 -0.494 0.834" mesh="labrum_left_lower"/>
-              <!-- <geom name="labrum_left_lower_collision" class="adhesion-collision" type="ellipsoid" size="0.0035 0.00875 0.0131" pos="-0.000603 0.0106 -0.00438" quat="-0.174 -0.715 0.0876 0.672"/> -->
+              <geom name="labrum_left_lower_collision" class="adhesion-collision" type="ellipsoid" size="0.0035 0.00875 0.0131" pos="-0.000603 0.0106 -0.00438" quat="-0.174 -0.715 0.0876 0.672" contype="0" conaffinity="0"/>
             </body>
             <body name="labrum_right" childclass="labrum" pos="0.00263 0.0182 0" quat="0.699 0.00274 0.642 -0.316">
               <!-- <joint name="labrum_right" axis="1 0 0" range="-0.00524 1.05"/> -->
               <geom name="labrum_right_lower" material="lower" pos="0.1 0.022 -0.0113" quat="-0.817 -0.509 0.236 0.133" mesh="labrum_right_lower"/>
-              <!-- <geom name="labrum_right_lower_collision" class="adhesion-collision" type="ellipsoid" size="0.0035 0.00875 0.0131" pos="0.00116 0.0106 -0.00414" quat="-0.175 -0.668 -0.0724 -0.719"/> -->
+              <geom name="labrum_right_lower_collision" class="adhesion-collision" type="ellipsoid" size="0.0035 0.00875 0.0131" pos="0.00116 0.0106 -0.00414" quat="-0.175 -0.668 -0.0724 -0.719" contype="0" conaffinity="0"/>
             </body>
           </body>
         </body>
@@ -368,7 +368,7 @@
           <joint name="antenna_twist_left" class="antenna_twist"/>
           <joint name="antenna_left" class="antenna_extend"/> -->
           <geom name="antenna_left" pos="0.0148 0.116 -0.112" quat="0.364 0.49 0.474 -0.635" mesh="antenna_left"/>
-          <!-- <geom name="antenna_left_collision" class="collision" type="capsule" size="0.00481 0.00875" pos="0 0.0114 0.00263" quat="0.634 -0.773 0 0"/> -->
+          <geom name="antenna_left_collision" class="collision" type="capsule" size="0.00481 0.00875" pos="0 0.0114 0.00263" quat="0.634 -0.773 0 0" contype="0" conaffinity="0"/>
           <geom name="antenna_left_black" material="black" mass="0" pos="0.0148 0.116 -0.112" quat="0.364 0.49 0.474 -0.635" mesh="antenna_left_black"/>
         </body>
         <body name="antenna_right" pos="0.00861 0.038 0.0129" quat="0.59 0.785 -0.192 -0.0128">
@@ -376,7 +376,7 @@
           <joint name="antenna_twist_right" class="antenna_twist"/>
           <joint name="antenna_right" class="antenna_extend"/> -->
           <geom name="antenna_right" pos="-0.0153 -0.116 0.112" quat="-0.474 0.635 0.364 0.49" mesh="antenna_right"/>
-          <!-- <geom name="antenna_right_collision" class="collision" type="capsule" size="0.00481 0.00875" pos="-0.000616 -0.0114 -0.00231" quat="0.782 0.623 -0.0258 -0.0164"/> -->
+          <geom name="antenna_right_collision" class="collision" type="capsule" size="0.00481 0.00875" pos="-0.000616 -0.0114 -0.00231" quat="0.782 0.623 -0.0258 -0.0164" contype="0" conaffinity="0"/>
           <geom name="antenna_right_black" material="black" mass="0" pos="-0.0153 -0.116 0.112" quat="-0.474 0.635 0.364 0.49" mesh="antenna_right_black"/>
         </body>
       </body>
@@ -385,9 +385,9 @@
         <joint name="wing_roll_left" class="roll"/>
         <joint name="wing_pitch_left" class="pitch"/> -->
         <geom name="wing_left_brown" material="brown" mass="0" pos="-0.0968 0.0432 -0.09" quat="-0.915 0 -0.403 0" mesh="wing_left_brown"/>
-        <!-- <geom name="wing_left_brown_collision" class="collision" type="ellipsoid" size="0.00219 0.0175 0.114" pos="0.00186 -0.11 -0.00166" quat="-0.673 -0.647 0.26 -0.248"/> -->
+        <geom name="wing_left_brown_collision" class="collision" type="ellipsoid" size="0.00219 0.0175 0.114" pos="0.00186 -0.11 -0.00166" quat="-0.673 -0.647 0.26 -0.248" contype="0" conaffinity="0"/>
         <geom name="wing_left_membrane" material="membrane" mass="0" pos="-0.0968 0.0432 -0.09" quat="-0.915 0 -0.403 0" mesh="wing_left_membrane"/>
-        <!-- <geom name="wing_left_membrane_collision" class="collision-membrane" type="ellipsoid" size="0.00306 0.0551 0.114" pos="0.0263 -0.148 -0.0289" quat="-0.685 -0.634 0.265 -0.243"/> -->
+        <geom name="wing_left_membrane_collision" class="collision-membrane" type="ellipsoid" size="0.00306 0.0551 0.114" pos="0.0263 -0.148 -0.0289" quat="-0.685 -0.634 0.265 -0.243" contype="0" conaffinity="0"/>
         <geom name="wing_left_fluid" class="wing-fluid" size="0.0005 0.0551 0.114" pos="0.0263 -0.148 -0.0289" quat="-0.685 -0.634 0.265 -0.243"/>
         <geom name="wing_left_inertial" class="wing-inertial" size="0.0005 0.0551 0.114" pos="0.0263 -0.148 -0.0289" quat="-0.685 -0.634 0.265 -0.243"/>
       </body>
@@ -396,9 +396,9 @@
         <joint name="wing_roll_right" class="roll"/>
         <joint name="wing_pitch_right" class="pitch"/> -->
         <geom name="wing_right_brown" material="brown" mass="0" pos="0.0968 -0.0432 0.09" quat="-0.403 0 0.915 0" mesh="wing_right_brown"/>
-        <!-- <geom name="wing_right_brown_collision" class="collision" type="ellipsoid" size="0.00219 0.0175 0.114" pos="-0.00186 0.11 0.00166" quat="0.248 0.26 0.647 -0.673"/> -->
+        <geom name="wing_right_brown_collision" class="collision" type="ellipsoid" size="0.00219 0.0175 0.114" pos="-0.00186 0.11 0.00166" quat="0.248 0.26 0.647 -0.673" contype="0" conaffinity="0"/>
         <geom name="wing_right_membrane" material="membrane" mass="0" pos="0.0968 -0.0432 0.09" quat="-0.403 0 0.915 0" mesh="wing_right_membrane"/>
-        <!-- <geom name="wing_right_membrane_collision" class="collision-membrane" type="ellipsoid" size="0.00306 0.0551 0.114" pos="-0.0263 0.148 0.0289" quat="0.243 0.265 0.634 -0.685"/> -->
+        <geom name="wing_right_membrane_collision" class="collision-membrane" type="ellipsoid" size="0.00306 0.0551 0.114" pos="-0.0263 0.148 0.0289" quat="0.243 0.265 0.634 -0.685" contype="0" conaffinity="0"/>
         <geom name="wing_right_fluid" class="wing-fluid" size="0.0005 0.0551 0.114" pos="-0.0263 0.148 0.0289" quat="0.243 0.265 0.634 -0.685"/>
         <geom name="wing_right_inertial" class="wing-inertial" size="0.0005 0.0551 0.114" pos="-0.0263 0.148 0.0289" quat="0.243 0.265 0.634 -0.685"/>
       </body>
@@ -407,43 +407,43 @@
         <joint name="abdomen" class="extend_abdomen"/> -->
         <geom name="abdomen" pos="0.000758 -0.0663 -0.115" quat="0.7 -0.0853 0.0859 0.704" mesh="abdomen_1"/>
         <geom name="abdomen_lower" material="lower" pos="0.000758 -0.0663 -0.115" quat="0.7 -0.0853 0.0859 0.704" mesh="abdomen_1_lower"/>
-        <!-- <geom name="abdomen_collision" class="collision" type="cylinder" size="0.0281 0.0102 0" pos="-0.000187 0.00646 -0.0146" quat="0.0104 -0.0205 0.824 0.566"/> -->
+        <geom name="abdomen_collision" class="collision" type="cylinder" size="0.0281 0.0102 0" pos="-0.000187 0.00646 -0.0146" quat="0.0104 -0.0205 0.824 0.566" contype="0" conaffinity="0"/>
         <body name="abdomen_2" pos="0 0.0119 0" quat="0.981 -0.192 -0.000269 0.00144">
           <!-- <joint name="abdomen_abduct_2" class="abduct_abdomen"/>
           <joint name="abdomen_2" class="extend_abdomen"/> -->
           <geom name="abdomen_2" pos="0.000532 -0.0293 -0.136" quat="0.704 0.0507 -0.0503 0.706" mesh="abdomen_2"/>
           <geom name="abdomen_2_lower" material="lower" pos="0.000532 -0.0293 -0.136" quat="0.704 0.0507 -0.0503 0.706" mesh="abdomen_2_lower"/>
-          <!-- <geom name="abdomen_2_collision" class="collision" type="cylinder" size="0.035 0.0142 0" pos="-0.000182 0.0166 -0.015" quat="-0.0458 -0.0256 0.694 0.718"/> -->
+          <geom name="abdomen_2_collision" class="collision" type="cylinder" size="0.035 0.0142 0" pos="-0.000182 0.0166 -0.015" quat="-0.0458 -0.0256 0.694 0.718" contype="0" conaffinity="0"/>
           <body name="abdomen_3" pos="0 0.0212 0" quat="0.996 -0.0909 6.69e-05 0.000525">
             <!-- <joint name="abdomen_abduct_3" class="abduct_abdomen"/>
             <joint name="abdomen_3" class="extend_abdomen"/> -->
             <geom name="abdomen_3" pos="0.000511 -0.0251 -0.143" quat="0.697 0.114 -0.114 0.699" mesh="abdomen_3"/>
             <geom name="abdomen_3_lower" material="lower" pos="0.000511 -0.0251 -0.143" quat="0.697 0.114 -0.114 0.699" mesh="abdomen_3_lower"/>
-            <!-- <geom name="abdomen_3_collision" class="collision" type="cylinder" size="0.0371 0.0194 0" pos="3.29e-05 0.0198 -0.0136" quat="0.697 -0.605 0.274 0.271"/> -->
+            <geom name="abdomen_3_collision" class="collision" type="cylinder" size="0.0371 0.0194 0" pos="3.29e-05 0.0198 -0.0136" quat="0.697 -0.605 0.274 0.271" contype="0" conaffinity="0"/>
             <body name="abdomen_4" pos="0 0.0313 0" quat="0.999 -0.0332 0.000147 -0.000229">
               <!-- <joint name="abdomen_abduct_4" class="abduct_abdomen"/>
               <joint name="abdomen_4" class="extend_abdomen"/> -->
               <geom name="abdomen_4" pos="0.000577 -0.0468 -0.146" quat="0.693 0.137 -0.138 0.695" mesh="abdomen_4"/>
               <geom name="abdomen_4_lower" material="lower" pos="0.000577 -0.0468 -0.146" quat="0.693 0.137 -0.138 0.695" mesh="abdomen_4_lower"/>
-              <!-- <geom name="abdomen_4_collision" class="collision" type="cylinder" size="0.0377 0.0176 0" pos="9.67e-05 0.015 -0.0158" quat="-0.0133 -0.062 0.637 0.768"/> -->
+              <geom name="abdomen_4_collision" class="collision" type="cylinder" size="0.0377 0.0176 0" pos="9.67e-05 0.015 -0.0158" quat="-0.0133 -0.062 0.637 0.768" contype="0" conaffinity="0"/>
               <body name="abdomen_5" pos="0 0.0262 0" quat="0.999 -0.0368 -4.72e-05 -0.000327">
                 <!-- <joint name="abdomen_abduct_5" class="abduct_abdomen"/>
                 <joint name="abdomen_5" class="extend_abdomen"/> -->
                 <geom name="abdomen_5" pos="0.000607 -0.062 -0.151" quat="0.687 0.163 -0.163 0.689" mesh="abdomen_5"/>
                 <geom name="abdomen_5_lower" material="lower" pos="0.000607 -0.062 -0.151" quat="0.687 0.163 -0.163 0.689" mesh="abdomen_5_lower"/>
-                <!-- <geom name="abdomen_5_collision" class="collision" type="cylinder" size="0.0353 0.016 0" pos="0.000282 0.0105 -0.0156" quat="-0.00496 -0.0596 0.624 0.779"/> -->
+                <geom name="abdomen_5_collision" class="collision" type="cylinder" size="0.0353 0.016 0" pos="0.000282 0.0105 -0.0156" quat="-0.00496 -0.0596 0.624 0.779" contype="0" conaffinity="0"/>
                 <body name="abdomen_6" pos="0 0.0213 0" quat="0.998 -0.0662 0.000156 -0.000351">
                   <!-- <joint name="abdomen_abduct_6" class="abduct_abdomen"/>
                   <joint name="abdomen_6" class="extend_abdomen"/> -->
                   <geom name="abdomen_6" pos="0.000707 -0.0626 -0.161" quat="0.674 0.208 -0.208 0.677" mesh="abdomen_6"/>
                   <geom name="abdomen_6_lower" material="lower" pos="0.000707 -0.0626 -0.161" quat="0.674 0.208 -0.208 0.677" mesh="abdomen_6_lower"/>
-                  <!-- <geom name="abdomen_6_collision" class="collision" type="cylinder" size="0.0318 0.0141 0" pos="-0.000157 0.00942 -0.0143" quat="-0.00411 0.000397 0.592 0.806"/> -->
+                  <geom name="abdomen_6_collision" class="collision" type="cylinder" size="0.0318 0.0141 0" pos="-0.000157 0.00942 -0.0143" quat="-0.00411 0.000397 0.592 0.806" contype="0" conaffinity="0"/>
                   <body name="abdomen_7" pos="0 0.0182 0" quat="0.995 -0.102 -1.79e-06 -0.000187">
                     <!-- <joint name="abdomen_abduct_7" class="abduct_abdomen"/>
                     <joint name="abdomen_7" class="extend_abdomen"/> -->
                     <geom name="abdomen_8" pos="0.000731 -0.0464 -0.174" quat="0.649 0.276 -0.276 0.653" mesh="abdomen_8"/>
                     <geom name="abdomen_7" pos="0.000731 -0.0464 -0.174" quat="0.649 0.276 -0.276 0.653" mesh="abdomen_7"/>
-                    <!-- <geom name="abdomen_7_collision" class="collision" type="sphere" size="0.0262" pos="-3.83e-05 0.0134 -0.0108"/> -->
+                    <geom name="abdomen_7_collision" class="collision" type="sphere" size="0.0262" pos="-3.83e-05 0.0134 -0.0108" contype="0" conaffinity="0"/>
                     <geom name="abdomen_7_lower" material="lower" pos="0.000731 -0.0464 -0.174" quat="0.649 0.276 -0.276 0.653" mesh="abdomen_7_lower"/>
                   </body>
                 </body>
@@ -926,5 +926,7 @@
     <touch name="touch_claw_T3_left" site="claw_T3_left"/>
     <touch name="touch_claw_T3_right" site="claw_T3_right"/>
   </sensor> -->
-
+<keyframe>
+    <key name="home" qpos="0.006792709231376648 0.0034985796082764864 0.0024463613517582417 0.9927980303764343 -0.02143842913210392 0.11559582501649857 0.023025181144475937 -0.19891785085201263 0.0763564482331276 -0.018897827714681625 0.19258560240268707 0.37113359570503235 0.48125794529914856 -0.17970441281795502 0.37890949845314026 -0.2604788839817047 0.27135875821113586 0.45077815651893616 0.5159262418746948 -0.13648448884487152 0.029758283868432045 -0.1461937576532364 0.21017812192440033 0.3122818171977997 0.07778739184141159 -0.3632395565509796 -0.3251155614852905 0.14896735548973083 0.491696834564209 0.3275758922100067 0.1312159299850464 -0.04050684720277786 0.33762800693511963 -0.030173664912581444 0.04713206738233566 0.08270945399999619 -0.015508891083300114 0.009800096973776817 0.3457980155944824 0.10647561401128769 -0.09080053865909576 -0.06966248899698257 -0.09077364206314087"/>
+</keyframe>
 </mujoco>

@@ -507,7 +507,7 @@ class Fruitfly_Tethered_Free(PipelineEnv):
             quat_reward = 0.0
 
         track_joints = self._ref_traj.joints
-        joint_distance = (jp.sum(data.qpos - track_joints[cur_frame]) ** 2)
+        joint_distance = (jp.sum(data.qpos[7:] - track_joints[cur_frame]) ** 2)
         joint_reward = self._joint_reward_weight * jp.exp(-0.5 * joint_distance)
         info["joint_distance"] = joint_distance
 
@@ -606,7 +606,7 @@ class Fruitfly_Tethered_Free(PipelineEnv):
             ref_traj.quaternion,
         ).flatten()
 
-        joint_dist = (ref_traj.joints - data.qpos)[:, self._joint_idxs].flatten()
+        joint_dist = (ref_traj.joints - data.qpos[7:])[:, self._joint_idxs].flatten()
 
         # TODO test if this works
         body_pos_dist_local = jax.vmap(

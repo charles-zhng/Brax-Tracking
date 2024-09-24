@@ -1,7 +1,7 @@
 name: Flybody
 camera: 1
 rendering_mjcf: fruitly_force_pair.xml
-stac_path: ${paths.data_dir}/transform_tethered.p
+stac_path: ${paths.data_dir}/transform_mocap_fly_freejnt.p
 clip_idx: 0
 clip_length: 250
 ref_traj_length: 5
@@ -17,7 +17,7 @@ env_args:
   bad_pose_dist: 1000.0 # 60.0
   bad_quat_dist: 1000.0 #1.25
   ctrl_cost_weight: 0.01
-  pos_reward_weight: 3.0
+  pos_reward_weight: 0
   quat_reward_weight: 1.0
   joint_reward_weight: 50.0
   angvel_reward_weight: 0.0

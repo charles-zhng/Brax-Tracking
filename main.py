@@ -1,3 +1,4 @@
+import os
 import functools
 import jax
 from typing import Dict
@@ -5,6 +6,8 @@ import wandb
 import imageio
 import mujoco
 from brax import envs
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
 
 # from brax.training.agents.ppo import train as ppo
 import numpy as np
@@ -24,11 +27,9 @@ from utils.utils import *
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-import os
 from absl import app
 from absl import flags
 
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
 
 FLAGS = flags.FLAGS
 
@@ -115,7 +116,7 @@ def main(cfg: DictConfig) -> None:
     run_id = uuid.uuid4()
     model_path = cfg.paths.ckpt_dir / f"./{run_id}"
 
-    run = wandb.init(dir=cfg.paths.log_dir, project=cfg.train.wandb_project, config=OmegaConf.to_container(cfg), notes="Tethered")
+    run = wandb.init(dir=cfg.paths.log_dir, project=cfg.train.wandb_project, config=OmegaConf.to_container(cfg), notes="Tethered with freejnt")
 
     wandb.run.name = (
         f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{run_id}"
@@ -166,6 +167,24 @@ def main(cfg: DictConfig) -> None:
             },
             commit=False,
         )
+        
+        bodypos_rewards = [state.metrics["bodypos_reward"] for state in rollout]
+        table = wandb.Table(
+            data=[[x, y] for (x, y) in zip(range(len(bodypos_rewards)), bodypos_rewards)],
+            columns=["frame", "bodypos_rewards"],
+        )
+        wandb.log(
+            {
+                "eval/rollout_bodypos_rewards": wandb.plot.line(
+                    table,
+                    "frame",
+                    "bodypos_rewards",
+                    title="bodypos_rewards for each rollout frame",
+                )
+            },
+            commit=False,
+        )
+        
 
         joint_rewards = [state.metrics["joint_reward"] for state in rollout]
         table = wandb.Table(
@@ -188,9 +207,7 @@ def main(cfg: DictConfig) -> None:
         table = wandb.Table(
             data=[
                 [x, y]
-                for (x, y) in zip(
-                    range(len(summed_pos_distances)), summed_pos_distances
-                )
+                for (x, y) in zip(range(len(summed_pos_distances)), summed_pos_distances)
             ],
             columns=["frame", "summed_pos_distances"],
         )
@@ -206,9 +223,24 @@ def main(cfg: DictConfig) -> None:
             commit=False,
         )
 
-        torso_heights = [
-            state.pipeline_state.xpos[env._thorax_idx][2] for state in rollout
-        ]
+        joint_distances = [state.info["joint_distance"] for state in rollout]
+        table = wandb.Table(
+            data=[[x, y] for (x, y) in zip(range(len(joint_distances)), joint_distances)],
+            columns=["frame", "joint_distances"],
+        )
+        wandb.log(
+            {
+                "eval/rollout_joint_distances": wandb.plot.line(
+                    table,
+                    "frame",
+                    "joint_distances",
+                    title="joint_distances for each rollout frame",
+                )
+            },
+            commit=False,
+        )
+
+        torso_heights = [state.pipeline_state.xpos[env._torso_idx][2] for state in rollout]
         table = wandb.Table(
             data=[[x, y] for (x, y) in zip(range(len(torso_heights)), torso_heights)],
             columns=["frame", "torso_heights"],
