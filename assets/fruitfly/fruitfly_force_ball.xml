@@ -1,9 +1,9 @@
 <mujoco model="fruitfly">
   <compiler autolimits="true" angle="radian"/>
 
-  <option gravity="0 0 -981" density="0.00128" viscosity="0.000185" cone="elliptic" noslip_iterations="3"/>
+  <option gravity="0 0 -9.81" density="0.00128" viscosity="0.000185" cone="elliptic" noslip_iterations="3"/>
 
-  <size njmax="300" nconmax="100" nkey="1"/>
+  <size nkey="1"/>
 
   <default>
     <mesh scale="0.1 0.1 0.1"/>

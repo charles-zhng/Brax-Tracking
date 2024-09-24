@@ -41,8 +41,8 @@ os.environ["XLA_FLAGS"] = (
 )
 
 
-# envs.register_environment("fly_single_clip", Fruitfly_Tethered)
-envs.register_environment("fly_single_clip", Fruitfly_Tethered_Free)
+envs.register_environment("fly_single_clip", Fruitfly_Tethered)
+# envs.register_environment("fly_single_clip", Fruitfly_Tethered_Free)
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
