@@ -240,18 +240,18 @@ def main(cfg: DictConfig) -> None:
             commit=False,
         )
 
-        torso_heights = [state.pipeline_state.xpos[env._torso_idx][2] for state in rollout]
+        thorax_heights = [state.pipeline_state.xpos[env._thorax_idx][2] for state in rollout]
         table = wandb.Table(
-            data=[[x, y] for (x, y) in zip(range(len(torso_heights)), torso_heights)],
-            columns=["frame", "torso_heights"],
+            data=[[x, y] for (x, y) in zip(range(len(thorax_heights)), thorax_heights)],
+            columns=["frame", "thorax_heights"],
         )
         wandb.log(
             {
-                "eval/rollout_torso_heights": wandb.plot.line(
+                "eval/rollout_thorax_heights": wandb.plot.line(
                     table,
                     "frame",
-                    "torso_heights",
-                    title="torso_heights for each rollout frame",
+                    "thorax_heights",
+                    title="thorax_heights for each rollout frame",
                 )
             },
             commit=False,
@@ -271,7 +271,7 @@ def main(cfg: DictConfig) -> None:
             return jp.array([])
 
         ref_traj = jax.tree_util.tree_map(f, reference_clip)
-        if ref_traj.position is None:
+        if env.sys.jnt_type[0] != 0:
             qposes_ref = np.repeat(ref_traj.joints,env._steps_for_cur_frame,axis=0,)
         else:
             qposes_ref = np.repeat(np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),env._steps_for_cur_frame,axis=0,)
