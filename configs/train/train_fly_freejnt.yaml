@@ -5,11 +5,11 @@ env_name: fly_single_clip_freejnt
 algo_name: ppo
 task_name: track
 note: 
-num_envs: 1024
+num_envs: 2048
 num_timesteps: 3_000_000_000
 eval_every: 10_000_000
 episode_length: 250
-batch_size: 1024
+batch_size: 2048
 learning_rate: 3e-4
 num_minibatches: 32
 num_updates_per_batch: 16
