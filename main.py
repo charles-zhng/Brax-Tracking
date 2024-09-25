@@ -276,7 +276,6 @@ def main(cfg: DictConfig) -> None:
         else:
             qposes_ref = np.repeat(np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),env._steps_for_cur_frame,axis=0,)
 
-        #### TODO: make more flexible by removing free joint when not needed
         spec = mujoco.MjSpec()
         spec.from_file(cfg.dataset.rendering_mjcf)
         thorax = spec.find_body('thorax')
