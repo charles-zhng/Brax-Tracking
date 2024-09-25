@@ -278,10 +278,13 @@ def main(cfg: DictConfig) -> None:
 
         spec = mujoco.MjSpec()
         spec.from_file(cfg.dataset.rendering_mjcf)
-        thorax = spec.find_body('thorax')
-        first_joint = thorax.first_joint()
-        if (env._free_jnt==False) & (first_joint.name == 'free'):
-            first_joint.delete()
+        thorax0 = spec.find_body('thorax-0')
+        first_joint0 = thorax0.first_joint()
+        if (env._free_jnt==False) & (first_joint0.name == 'free'):
+            first_joint0.delete()
+            thorax1 = spec.find_body('thorax-1')
+            first_joint1 = thorax1.first_joint()
+            first_joint1.delete()
         mj_model = spec.compile()
         # mj_model = mujoco.MjModel.from_xml_path(cfg.dataset.rendering_mjcf)
 

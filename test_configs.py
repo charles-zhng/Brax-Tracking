@@ -10,7 +10,7 @@ def my_app(cfg: DictConfig) -> None:
             cfg.paths[k] = Path(cfg.paths[k])
             cfg.paths[k].mkdir(parents=True, exist_ok=True)
     print(OmegaConf.to_yaml(cfg))
-    OmegaConf.save(cfg, cfg.paths.save_dir / 'config.yaml')
+    OmegaConf.save(cfg, cfg.paths.save_dir / 'run_config.yaml')
 
 if __name__ == "__main__":
     my_app()
