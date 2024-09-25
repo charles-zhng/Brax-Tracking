@@ -1,7 +1,7 @@
 version: ${resolve_default:debug,${..version}}
 gpu: ${resolve_default:0,${..gpu}}
 wandb_project: "eabe_debug"
-env_name: fly_single_clip_freejnt
+env_name: fly_single_clip
 algo_name: ppo
 task_name: track
 note: 

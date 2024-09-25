@@ -276,7 +276,15 @@ def main(cfg: DictConfig) -> None:
         else:
             qposes_ref = np.repeat(np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),env._steps_for_cur_frame,axis=0,)
 
-        mj_model = mujoco.MjModel.from_xml_path(cfg.dataset.rendering_mjcf)
+        #### TODO: make more flexible by removing free joint when not needed
+        spec = mujoco.MjSpec()
+        spec.from_file(cfg.dataset.rendering_mjcf)
+        thorax = spec.find_body('thorax')
+        first_joint = thorax.first_joint()
+        if (env._free_jnt==False) & (first_joint.name == 'free'):
+            first_joint.delete()
+        mj_model = spec.compile()
+        # mj_model = mujoco.MjModel.from_xml_path(cfg.dataset.rendering_mjcf)
 
         mj_model.opt.solver = {
             "cg": mujoco.mjtSolver.mjSOL_CG,

@@ -9,6 +9,7 @@ from brax import math as brax_math
 from typing import List
 import mujoco
 from mujoco import mjx
+from dm_control import mjcf
 
 import numpy as np
 
@@ -47,9 +48,17 @@ class Fruitfly_Tethered(PipelineEnv):
         iterations: int = 6,
         ls_iterations: int = 6,
         terminate_when_unhealthy=True,
+        free_jnt=True,
         **kwargs,
     ):
-        root = mujoco.MjModel.from_xml_path(mjcf_path)
+        spec = mujoco.MjSpec()
+        spec.from_file(mjcf_path)
+        thorax = spec.find_body('thorax')
+        first_joint = thorax.first_joint()
+        if (free_jnt==False) & (first_joint.name == 'free'):
+            first_joint.delete()
+        root = spec.compile()
+        # root = mujoco.MjModel.from_xml_path(mjcf_path)
 
         # Convert to torque actuators
         if torque_actuators:
@@ -91,7 +100,7 @@ class Fruitfly_Tethered(PipelineEnv):
 
         # using this for appendage for now bc im to lazy to rename 
         self._endeff_idxs = jp.array([mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("body"), body) for body in end_eff_names])
-
+        self._free_jnt = free_jnt
         self._mocap_hz = mocap_hz
         self._bad_pose_dist = bad_pose_dist
         self._too_far_dist = too_far_dist
@@ -365,10 +374,18 @@ class Fruitfly_Tethered_Free(PipelineEnv):
         iterations: int = 6,
         ls_iterations: int = 6,
         terminate_when_unhealthy=True,
+        free_jnt=True,
         **kwargs,
     ):
-        root = mujoco.MjModel.from_xml_path(mjcf_path)
-
+        # root = mujoco.MjModel.from_xml_path(mjcf_path)
+        spec = mujoco.MjSpec()
+        spec.from_file(mjcf_path)
+        thorax = spec.find_body('thorax')
+        first_joint = thorax.first_joint()
+        if (free_jnt==False) & (first_joint.name == 'free'):
+            first_joint.delete()
+        root = spec.compile()
+        
         # Convert to torque actuators
         if torque_actuators:
             for actuator in root.find_all("actuator"):
@@ -409,7 +426,8 @@ class Fruitfly_Tethered_Free(PipelineEnv):
 
         # using this for appendage for now bc im to lazy to rename 
         self._endeff_idxs = jp.array([mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("body"), body) for body in end_eff_names])
-
+        
+        self._free_jnt = free_jnt
         self._mocap_hz = mocap_hz
         self._bad_pose_dist = bad_pose_dist
         self._too_far_dist = too_far_dist
