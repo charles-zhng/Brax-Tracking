@@ -22,8 +22,8 @@ from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.types import Params
 from brax.training.types import PRNGKey
 from brax.v1 import envs as envs_v1
+import custom_brax.custom_wrappers
 from etils import epath
-
 import flax
 import jax
 import jax.numpy as jnp
@@ -206,7 +206,7 @@ def train(
         v_randomization_fn = functools.partial(randomization_fn, rng=randomization_rng)
 
     if isinstance(environment, envs.Env):
-        wrap_for_training = envs_v1.wrappers.wrap
+        wrap_for_training = custom_brax.custom_wrappers.wrap
     else:
         wrap_for_training = envs_v1.wrappers.wrap_for_training
 

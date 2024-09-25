@@ -1,3 +1,4 @@
+import os
 import functools
 import jax
 from typing import Dict
@@ -5,28 +6,30 @@ import wandb
 import imageio
 import mujoco
 from brax import envs
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
 
 # from brax.training.agents.ppo import train as ppo
-from custom_brax import custom_ppo as ppo
-from custom_brax import custom_wrappers
-from brax.io import model
 import numpy as np
-from envs.rodent import RodentSingleClip
+# from envs.rodent import RodentSingleClip
 import pickle
 import warnings
-from preprocessing.preprocess import process_clip_to_train
 from jax import numpy as jp
-from brax.training.agents.ppo import networks as ppo_networks
 import hydra
+from brax.io import model
 from omegaconf import DictConfig, OmegaConf
+from brax.training.agents.ppo import networks as ppo_networks
+from custom_brax import custom_ppo as ppo
+from custom_brax import custom_wrappers
+from preprocessing.preprocess import process_clip_to_train
+from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Tethered_Free
+from utils.utils import *
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-import os
 from absl import app
 from absl import flags
 
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
 
 FLAGS = flags.FLAGS
 
@@ -38,17 +41,21 @@ os.environ["XLA_FLAGS"] = (
 )
 
 
-envs.register_environment("rodent_single_clip", RodentSingleClip)
+envs.register_environment("fly_single_clip", Fruitfly_Tethered)
+envs.register_environment("fly_single_clip_freejnt", Fruitfly_Tethered_Free)
 
 
-@hydra.main(config_path="./configs", config_name="train_config", version_base=None)
-def main(train_config: DictConfig):
-    env_cfg = hydra.compose(config_name="env_config")
-    env_cfg = OmegaConf.to_container(env_cfg, resolve=True)
-    env_cfg = env_cfg[train_config.env_name]
-    env_args = env_cfg["env_args"]
-
-    reference_path = f"clips/{env_cfg['clip_idx']}.p"
+@hydra.main(version_base=None, config_path="configs", config_name="config")
+def main(cfg: DictConfig) -> None:
+    # Create paths if they don't exist and Path objects
+    for k in cfg.paths.keys():
+        if k != 'user':
+            cfg.paths[k] = Path(cfg.paths[k])
+            cfg.paths[k].mkdir(parents=True, exist_ok=True)
+    env_cfg = cfg.dataset
+    env_args = cfg.dataset.env_args
+    reference_path = cfg.paths.data_dir/ f"clips/{env_cfg['clip_idx']}.p"
+    reference_path.parent.mkdir(parents=True, exist_ok=True)
 
     if os.path.exists(reference_path):
         with open(reference_path, "rb") as file:
@@ -58,8 +65,8 @@ def main(train_config: DictConfig):
         # Process rodent clip and save as pickle
         reference_clip = process_clip_to_train(
             env_cfg["stac_path"],
-            start_step=env_cfg["clip_idx"] * env_args["clip_length"],
-            clip_length=env_args["clip_length"],
+            start_step=env_cfg["clip_idx"] * env_cfg["clip_length"],
+            clip_length=env_cfg["clip_length"],
             mjcf_path=env_args["mjcf_path"],
         )
         with open(reference_path, "wb") as file:
@@ -68,56 +75,37 @@ def main(train_config: DictConfig):
 
     # Init env
     env = envs.get_environment(
-        env_cfg["name"],
+        cfg.train.env_name,
         reference_clip=reference_clip,
         **env_args,
     )
 
-    # Instantiate the environment
-    # env_name = config["env_name"]
-    # env = envs.get_environment(
-    #     env_name,
-    #     track_pos=reference_clip.position,
-    #     track_quat=reference_clip.quaternion,
-    #     torque_actuators=config["torque_actuators"],
-    #     terminate_when_unhealthy=config["terminate_when_unhealthy"],
-    #     solver=config["solver"],
-    #     iterations=config["iterations"],
-    #     ls_iterations=config["ls_iterations"],
-    #     too_far_dist=config["too_far_dist"],
-    #     ctrl_cost_weight=config["ctrl_cost_weight"],
-    #     pos_reward_weight=config["pos_reward_weight"],
-    #     quat_reward_weight=config["quat_reward_weight"],
-    #     healthy_reward=config["healthy_reward"],
-    #     healthy_z_range=config["healthy_z_range"],
-    #     physics_steps_per_control_step=config["physics_steps_per_control_step"],
-    # )
 
     # Episode length is equal to (clip length - random init range - traj length) * steps per cur frame
     # Will work on not hardcoding these values later
-    episode_length = (250 - 100 - 5) * env._steps_for_cur_frame
+    episode_length = (env_cfg.clip_length - 50 - env_cfg.ref_traj_length) * env._steps_for_cur_frame
     print(f"episode_length {episode_length}")
 
     train_fn = functools.partial(
         ppo.train,
-        num_timesteps=config["num_timesteps"],
-        num_evals=int(config["num_timesteps"] / config["eval_every"]),
+        num_timesteps=cfg.train["num_timesteps"],
+        num_evals=int(cfg.train["num_timesteps"] / cfg.train["eval_every"]),
         reward_scaling=1,
         episode_length=episode_length,
         normalize_observations=True,
-        action_repeat=1,
-        unroll_length=16,
-        num_minibatches=32,
-        num_updates_per_batch=8,
-        discounting=0.99,
-        learning_rate=config["learning_rate"],
-        entropy_cost=1e-3,
-        num_envs=config["num_envs"],
-        batch_size=config["batch_size"],
-        seed=0,
+        action_repeat=cfg.train['action_repeat'],
+        unroll_length=cfg.train['unroll_length'],
+        num_minibatches=cfg.train['num_minibatches'],
+        num_updates_per_batch=cfg.train['num_updates_per_batch'],
+        discounting=cfg.train['discounting'],
+        learning_rate=cfg.train["learning_rate"],
+        entropy_cost=cfg.train['entropy_cost'],
+        num_envs=cfg.train["num_envs"],
+        batch_size=cfg.train["batch_size"],
+        seed=cfg.seed,
         network_factory=functools.partial(
             ppo_networks.make_ppo_networks,
-            policy_hidden_layer_sizes=(256, 256),
+            policy_hidden_layer_sizes=cfg.train['mlp_policy_layer_sizes'],
             value_hidden_layer_sizes=(256, 256),
         ),
     )
@@ -126,12 +114,12 @@ def main(train_config: DictConfig):
 
     # Generates a completely random UUID (version 4)
     run_id = uuid.uuid4()
-    model_path = f"./model_checkpoints/{run_id}"
+    model_path = cfg.paths.ckpt_dir / f"./{run_id}"
 
-    run = wandb.init(project="vnl_debug", config=config, notes="quat + alive")
+    run = wandb.init(dir=cfg.paths.log_dir, project=cfg.train.wandb_project, config=OmegaConf.to_container(cfg), notes=cfg.train.note)
 
     wandb.run.name = (
-        f"{config['env_name']}_{config['task_name']}_{config['algo_name']}_{run_id}"
+        f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{run_id}"
     )
 
     def wandb_progress(num_steps, metrics):
@@ -179,14 +167,47 @@ def main(train_config: DictConfig):
             },
             commit=False,
         )
+        
+        bodypos_rewards = [state.metrics["bodypos_reward"] for state in rollout]
+        table = wandb.Table(
+            data=[[x, y] for (x, y) in zip(range(len(bodypos_rewards)), bodypos_rewards)],
+            columns=["frame", "bodypos_rewards"],
+        )
+        wandb.log(
+            {
+                "eval/rollout_bodypos_rewards": wandb.plot.line(
+                    table,
+                    "frame",
+                    "bodypos_rewards",
+                    title="bodypos_rewards for each rollout frame",
+                )
+            },
+            commit=False,
+        )
+        
+
+        joint_rewards = [state.metrics["joint_reward"] for state in rollout]
+        table = wandb.Table(
+            data=[[x, y] for (x, y) in zip(range(len(joint_rewards)), joint_rewards)],
+            columns=["frame", "joint_rewards"],
+        )
+        wandb.log(
+            {
+                "eval/rollout_joint_rewards": wandb.plot.line(
+                    table,
+                    "frame",
+                    "joint_rewards",
+                    title="joint_rewards for each rollout frame",
+                )
+            },
+            commit=False,
+        )
 
         summed_pos_distances = [state.info["summed_pos_distance"] for state in rollout]
         table = wandb.Table(
             data=[
                 [x, y]
-                for (x, y) in zip(
-                    range(len(summed_pos_distances)), summed_pos_distances
-                )
+                for (x, y) in zip(range(len(summed_pos_distances)), summed_pos_distances)
             ],
             columns=["frame", "summed_pos_distances"],
         )
@@ -202,20 +223,35 @@ def main(train_config: DictConfig):
             commit=False,
         )
 
-        torso_heights = [
-            state.pipeline_state.xpos[env._torso_idx][2] for state in rollout
-        ]
+        joint_distances = [state.info["joint_distance"] for state in rollout]
         table = wandb.Table(
-            data=[[x, y] for (x, y) in zip(range(len(torso_heights)), torso_heights)],
-            columns=["frame", "torso_heights"],
+            data=[[x, y] for (x, y) in zip(range(len(joint_distances)), joint_distances)],
+            columns=["frame", "joint_distances"],
         )
         wandb.log(
             {
-                "eval/rollout_torso_heights": wandb.plot.line(
+                "eval/rollout_joint_distances": wandb.plot.line(
                     table,
                     "frame",
-                    "torso_heights",
-                    title="torso_heights for each rollout frame",
+                    "joint_distances",
+                    title="joint_distances for each rollout frame",
+                )
+            },
+            commit=False,
+        )
+
+        thorax_heights = [state.pipeline_state.xpos[env._thorax_idx][2] for state in rollout]
+        table = wandb.Table(
+            data=[[x, y] for (x, y) in zip(range(len(thorax_heights)), thorax_heights)],
+            columns=["frame", "thorax_heights"],
+        )
+        wandb.log(
+            {
+                "eval/rollout_thorax_heights": wandb.plot.line(
+                    table,
+                    "frame",
+                    "thorax_heights",
+                    title="thorax_heights for each rollout frame",
                 )
             },
             commit=False,
@@ -235,37 +271,22 @@ def main(train_config: DictConfig):
             return jp.array([])
 
         ref_traj = jax.tree_util.tree_map(f, reference_clip)
-        qposes_ref = np.repeat(
-            np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),
-            env._steps_for_cur_frame,
-            axis=0,
-        )
+        if env.sys.jnt_type[0] != 0:
+            qposes_ref = np.repeat(ref_traj.joints,env._steps_for_cur_frame,axis=0,)
+        else:
+            qposes_ref = np.repeat(np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),env._steps_for_cur_frame,axis=0,)
 
-        # Trying to align them when using the reset wrapper...
-        # Doesn't work bc reset wrapper handles the done under the hood so it's always 0 :(
-        # done_array = np.array([state.done for state in rollout])
-        # reset_indices = np.where(done_array == 1.0)[0]
-        # if reset_indices.shape[0] == 0:
-        #     aligned_traj = qposes_ref
-        # else:
-        #     aligned_traj = np.zeros_like(qposes_rollout)
-        #     # Set the first segment
-        #     aligned_traj[: reset_indices[0] + 1] = qposes_ref[: reset_indices[0] + 1]
-
-        #     # Iterate through reset points
-        #     for i in range(len(reset_indices) - 1):
-        #         start = reset_indices[i] + 1
-        #         end = reset_indices[i + 1] + 1
-        #         length = end - start
-        #         aligned_traj[start:end] = qposes_ref[:length]
-
-        #     # Set the last segment
-        #     if reset_indices[-1] < len(done_array) - 1:
-        #         start = reset_indices[-1] + 1
-        #         length = len(done_array) - start
-        #         aligned_traj[start:] = qposes_ref[:length]
-
-        mj_model = mujoco.MjModel.from_xml_path(f"./models/rodent_pair.xml")
+        spec = mujoco.MjSpec()
+        spec.from_file(cfg.dataset.rendering_mjcf)
+        thorax0 = spec.find_body('thorax-0')
+        first_joint0 = thorax0.first_joint()
+        if (env._free_jnt==False) & (first_joint0.name == 'free'):
+            first_joint0.delete()
+            thorax1 = spec.find_body('thorax-1')
+            first_joint1 = thorax1.first_joint()
+            first_joint1.delete()
+        mj_model = spec.compile()
+        # mj_model = mujoco.MjModel.from_xml_path(cfg.dataset.rendering_mjcf)
 
         mj_model.opt.solver = {
             "cg": mujoco.mjtSolver.mjSOL_CG,
@@ -274,7 +295,15 @@ def main(train_config: DictConfig):
         mj_model.opt.iterations = 6
         mj_model.opt.ls_iterations = 6
         mj_data = mujoco.MjData(mj_model)
+        
+        site_names = [mj_model.site(i).name for i in range(mj_model.nsite) if '-1' in mj_model.site(i).name]
+        site_id = [mj_model.site(i).id for i in range(mj_model.nsite) if '-1' in mj_model.site(i).name]
+        for id in site_id:
+            mj_model.site(id).rgba = [1,0,0,1]
 
+        scene_option = mujoco.MjvOption()
+        scene_option.sitegroup[:] = [1, 1, 1, 1, 1, 0]
+        
         # save rendering and log to wandb
         os.environ["MUJOCO_GL"] = "osmesa"
         mujoco.mj_kinematics(mj_model, mj_data)
@@ -288,13 +317,14 @@ def main(train_config: DictConfig):
             for qpos1, qpos2 in zip(qposes_ref, qposes_rollout):
                 mj_data.qpos = np.append(qpos1, qpos2)
                 mujoco.mj_forward(mj_model, mj_data)
-                renderer.update_scene(mj_data, camera=f"close_profile")
+                renderer.update_scene(mj_data, camera=1, scene_option=scene_option)
                 pixels = renderer.render()
                 video.append_data(pixels)
                 frames.append(pixels)
 
         wandb.log({"eval/rollout": wandb.Video(video_path, format="mp4")})
 
+    OmegaConf.save(cfg, cfg.paths.log_dir/'run_config.yaml')
     make_inference_fn, params, _ = train_fn(
         environment=env, progress_fn=wandb_progress, policy_params_fn=policy_params_fn
     )
@@ -302,3 +332,6 @@ def main(train_config: DictConfig):
     final_save_path = f"{model_path}/brax_ppo_rodent_run_finished"
     model.save_params(final_save_path, params)
     print(f"Run finished. Model saved to {final_save_path}")
+
+if __name__ == "__main__":
+    main()
