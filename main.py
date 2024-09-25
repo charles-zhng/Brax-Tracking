@@ -7,7 +7,7 @@ import imageio
 import mujoco
 from brax import envs
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
 
 # from brax.training.agents.ppo import train as ppo
 import numpy as np
@@ -322,6 +322,7 @@ def main(cfg: DictConfig) -> None:
 
         wandb.log({"eval/rollout": wandb.Video(video_path, format="mp4")})
 
+    OmegaConf.save(cfg, cfg.paths.log_dir/'run_config.yaml')
     make_inference_fn, params, _ = train_fn(
         environment=env, progress_fn=wandb_progress, policy_params_fn=policy_params_fn
     )
