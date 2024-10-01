@@ -16,8 +16,8 @@ checkpoint: ''
 # set default task and default training config based on dataset
 defaults:
   - _self_
-  - dataset: fly
-  - train: train_fly
+  - dataset: fly_run
+  - train: train_fly_run
   - paths: walle
   # - override hydra/launcher: joblib
   # - hydra/job_logging: disabled

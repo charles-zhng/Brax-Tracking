@@ -471,7 +471,7 @@ def train(
             (training_state, env_state, training_metrics) = training_epoch_with_timing(
                 training_state, env_state, epoch_keys
             )
-            current_step = int(_unpmap(training_state.env_steps))
+            current_step = (_unpmap(training_state.env_steps)).astype(jnp.int64)
 
             key_envs = jax.vmap(
                 lambda x, s: jax.random.split(x[0], s), in_axes=(0, None)

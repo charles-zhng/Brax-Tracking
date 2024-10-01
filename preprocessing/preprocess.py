@@ -46,7 +46,7 @@ def process_clip_to_train(
     mjcf_path: str = "./assets/rodent.xml",
     scale_factor: float = 0.9,
     start_step: int = 0,
-    clip_length: int = 250,
+    clip_length: int = 601,
     max_qvel: float = 20.0,
     dt: float = 0.02,
 ):

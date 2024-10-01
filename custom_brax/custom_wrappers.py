@@ -123,3 +123,35 @@ class RenderRolloutWrapperTracking(Wrapper):
             "fall": zero,
         }
         return State(data, obs, reward, done, metrics, info)
+
+
+
+class RenderRolloutWrapperTracking_Run(Wrapper):
+    """Always resets to 0"""
+
+    def reset(self, rng: jax.Array) -> State:
+        rng, rng1, rng2 = jax.random.split(rng, 3)
+        rng, key = jax.random.split(rng)
+
+        pipeline_state = self.pipeline_init(self._init_q, jp.zeros(self._nv))
+
+        state_info = {
+            'rng': rng,
+            "cur_frame": 0,
+            "steps_taken_cur_frame": 0,
+            'last_act': jp.zeros(self._nu),
+            'last_vel': jp.zeros(self._nv),
+            'command': self.sample_command(key),
+            'last_contact': jp.zeros(6, dtype=bool),
+            'rewards': {k: 0.0 for k in self.reward_config.rewards.scales.keys()},
+            'step': 0,
+        }
+
+        obs_history = jp.zeros(15 * 91)  # store 15 steps of history
+        obs = self._get_obs(pipeline_state, state_info, obs_history)
+        reward, done = jp.zeros(2)
+        metrics = {'total_dist': 0.0}
+        for k in state_info['rewards']:
+            metrics[k] = state_info['rewards'][k]
+        
+        return State(pipeline_state, obs, reward, done, metrics, state_info)  
