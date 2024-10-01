@@ -14,6 +14,9 @@ import imageio
 import mujoco
 from brax import envs
 
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
+jax.config.update("jax_enable_x64", True)
 # from brax.training.agents.ppo import train as ppo
 import numpy as np
 
@@ -311,6 +314,21 @@ def main(cfg: DictConfig) -> None:
             first_joint1 = thorax1.first_joint()
             first_joint1.delete()
         mj_model = spec.compile()
+
+        ref_traj = jax.tree_util.tree_map(f, reference_clip)
+        if env.sys.jnt_type[0] != 0:
+            qposes_ref = np.repeat(
+                ref_traj.joints,
+                env._steps_for_cur_frame,
+                axis=0,
+            )
+        else:
+            qposes_ref = np.repeat(
+                np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),
+                env._steps_for_cur_frame,
+                axis=0,
+            )
+
         # mj_model = mujoco.MjModel.from_xml_path(cfg.dataset.rendering_mjcf)
 
         mj_model.opt.solver = {
@@ -336,6 +354,8 @@ def main(cfg: DictConfig) -> None:
 
         scene_option = mujoco.MjvOption()
         scene_option.sitegroup[:] = [1, 1, 1, 1, 1, 0]
+        # scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTPOINT] = True
+        # scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = True
 
         # save rendering and log to wandb
         os.environ["MUJOCO_GL"] = "osmesa"

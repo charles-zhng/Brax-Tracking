@@ -13,7 +13,6 @@ from typing import Any, List, Sequence
 from typing import List
 import mujoco
 from mujoco import mjx
-from dm_control import mjcf
 
 import numpy as np
 
@@ -48,7 +47,7 @@ class Fruitfly_Tethered(PipelineEnv):
         healthy_reward=0.25,
         healthy_z_range=(0.03, 0.5),
         physics_steps_per_control_step=10,
-        reset_noise_scale=1e-3,
+        reset_noise_scale=1e-4,
         solver="cg",
         iterations: int = 6,
         ls_iterations: int = 6,
