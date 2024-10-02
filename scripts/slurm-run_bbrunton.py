@@ -17,7 +17,6 @@ def submit():
 #SBATCH -N 1
 #SBATCH -t 2-00:00:00
 #SBATCH -J fruitfly
-#SBATCH --gres=gpu:nvidia_h100_80gb_hbm3:4
 #SBATCH --gpus=2
 #SBATCH -o ./OutFiles/slurm-%A_%a.out
 #SBATCH --mail-type=ALL

@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=Fruitfly     ### Job Name
 #SBATCH --partition=gpu-l40s ###  gpu ### ### Quality of Service (like a queue in PBS)
-#SBATCH --group=portia
+#SBATCH --account=portia
 #SBATCH --time=2-00:00:00     ### Wall clock time limit in Days-HH:MM:SS
 #SBATCH --nodes=1             ### Node count required for the job
 #SBATCH --ntasks-per-node=1   ### Nuber of tasks to be launched per Node
@@ -10,7 +10,6 @@
 #SBATCH --gpus=2              ### General REServation of gpu:number of gpus
 #SBATCH --mem=256G
 # #SBATCH --array=10 ###0-63 ###  ### Array index
-#SBATCH --account=portia
 #SBATCH --verbose  
 #SBATCH -o ./OutFiles/slurm-%A_%a.out
 
