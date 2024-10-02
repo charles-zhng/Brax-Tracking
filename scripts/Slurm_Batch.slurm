@@ -24,4 +24,4 @@ source ~/.bashrc
 module load cuda/12.2.2
 nvidia-smi
 conda activate stac-mjx-env
-python -u main.py paths=hyak train=train_fly dataset=fly train.note=hyak
+python -u main.py paths=hyak train=train_fly dataset=fly train.note=hyak train.num_envs=2048

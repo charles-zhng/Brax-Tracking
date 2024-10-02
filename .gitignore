@@ -158,9 +158,11 @@ cython_debug/
 model_checkpoints/
 # Jupyter Notebook
 .ipynb_checkpoints
-Outfiles/
+OutFiles/
 # *.ipynb
 Env_Testing_Fly01.ipynb
+.vscode/
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
