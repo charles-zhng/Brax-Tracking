@@ -147,7 +147,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     spec.from_file(cfg.dataset.rendering_mjcf)
     thorax0 = spec.find_body("thorax-0")
     first_joint0 = thorax0.first_joint()
-    if (env._free_jnt == False) & (first_joint0.name == "free"):
+    if (env._free_jnt == False) & ('free' in first_joint0.name):
         first_joint0.delete()
         thorax1 = spec.find_body("thorax-1")
         first_joint1 = thorax1.first_joint()
@@ -204,7 +204,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     frames = []
     # render while stepping using mujoco
     video_path = f"{model_path}/{num_steps}.mp4"
-
+    assert len(qposes_ref) == len(qposes_rollout), f"qposes_ref and qposes_rollout must have the same length:{qposes_ref[0].shape},{qposes_rollout[0].shape}"
     with imageio.get_writer(video_path, fps=int((1.0 / env.dt))) as video:
         for qpos1, qpos2 in zip(qposes_ref, qposes_rollout):
             mj_data.qpos = np.append(qpos1, qpos2)
