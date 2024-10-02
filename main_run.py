@@ -1,7 +1,7 @@
 import os
 
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
-os.environ["JAX_TRACEBACK_FILTERING"] = "off"
+# os.environ["JAX_TRACEBACK_FILTERING"] = "off"
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Use GPU 1
 import functools

@@ -24,5 +24,4 @@ source ~/.bashrc
 module load cuda/12.2.2
 nvidia-smi
 conda activate stac-mjx-env
-python -u main.py paths=hyak train=train_fly dataset=fly
-## python -u /home/eabe/Research/MyRepos/DopamineModulation/TrainPatterns.py --version=${SLURM_ARRAY_TASK_ID}
+python -u main.py paths=hyak train=train_fly dataset=fly train.note=hyak
