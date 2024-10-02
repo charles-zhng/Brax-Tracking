@@ -10,22 +10,22 @@ def slurm_submit(script):
 def submit():
     """Submit job to cluster."""
     script = f"""#!/bin/bash
-#SBATCH -p portia
-#SBATCH --mem=16000
+#SBATCH -A portia
+#SBATCH -p gpus-l40s
+#SBATCH --mem=256G
 #SBATCH -c 4
 #SBATCH -N 1
-# #SBATCH --constraint="a100"
-#SBATCH -t 0-12:00
+#SBATCH -t 2-00:00:00
 #SBATCH -J fruitfly
-# #SBATCH --gres=gpu:nvidia_a100-sxm4-80gb:2
 #SBATCH --gres=gpu:nvidia_h100_80gb_hbm3:4
-# # SBATCH -o /slurm/out
-# # SBATCH -e /slurm/error
+#SBATCH --gpus=2
+#SBATCH -o ./OutFiles/slurm-%A_%a.out
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=elliottabe@gmail.com
 source ~/.bashrc
-module load Mambaforge/22.11.1-fasrc01
-source activate rl
-module load cuda/12.2.0-fasrc01
+module load cuda/12.2.2
 nvidia-smi
+conda activate stac-mjx-env
 python3 main.py
 """
     print(f"Submitting job")

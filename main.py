@@ -41,7 +41,6 @@ os.environ["XLA_FLAGS"] = (
     "--xla_gpu_enable_triton_softmax_fusion=true " "--xla_gpu_triton_gemm_any=True "
 )
 
-
 envs.register_environment("fly_single_clip", Fruitfly_Tethered)
 envs.register_environment("fly_single_clip_freejnt", Fruitfly_Tethered_Free)
 envs.register_environment("fly_run", Fruitfly_Run)
