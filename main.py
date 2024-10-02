@@ -24,7 +24,7 @@ from omegaconf import DictConfig, OmegaConf
 from brax.training.agents.ppo import networks as ppo_networks
 from custom_brax import custom_ppo as ppo
 from custom_brax import custom_wrappers
-from envs.rodent import RodentSingleClip
+# from envs.rodent import RodentSingleClip
 from preprocessing.preprocess import process_clip_to_train
 from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Tethered_Free, Fruitfly_Run
 from utils.utils import *

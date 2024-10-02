@@ -158,6 +158,7 @@ cython_debug/
 model_checkpoints/
 # Jupyter Notebook
 .ipynb_checkpoints
+Outfiles/
 # *.ipynb
 Env_Testing_Fly01.ipynb
 # PyCharm
