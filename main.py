@@ -14,13 +14,7 @@ import imageio
 import mujoco
 from brax import envs
 
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'  # Use GPU 1
-jax.config.update("jax_enable_x64", True)
-# from brax.training.agents.ppo import train as ppo
 import numpy as np
-
-# from envs.rodent import RodentSingleClip
 import pickle
 import warnings
 from jax import numpy as jp
@@ -30,6 +24,7 @@ from omegaconf import DictConfig, OmegaConf
 from brax.training.agents.ppo import networks as ppo_networks
 from custom_brax import custom_ppo as ppo
 from custom_brax import custom_wrappers
+from envs.rodent import RodentSingleClip
 from preprocessing.preprocess import process_clip_to_train
 from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Tethered_Free, Fruitfly_Run
 from utils.utils import *
