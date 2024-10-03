@@ -793,9 +793,9 @@ def get_config():
                         # Tracking rewards are computed using exp(-delta^2/sigma)
                         # sigma can be a hyperparameters to tune.
                         # Track the base x-y velocity (no z-velocity tracking.)
-                        tracking_lin_vel=1.5,
+                        tracking_lin_vel=10,
                         # Penalize non-zero roll and pitch angles. L2 penalty.
-                        orientation=-5.0,
+                        orientation=-2.0,
                         # L2 regularization of joint torques, |tau|^2.
                         torques=0, # -0.0002
                         # Penalize the change in the action and encourage smooth
@@ -804,21 +804,21 @@ def get_config():
                         # Encourage long swing steps.  However, it does not
                         stand_still=-0.5,
                         # Early termination penalty.
-                        termination=-1.0,
+                        termination=-10.0,
                         # ignore position reward
                         pos_reward=0,
                         # encourage the robot to face forward
-                        quat_reward=1.0,
+                        quat_reward=0.0,
                         # encourage the robot to keep its joints close to the reference
-                        joint_reward=5.0,
+                        joint_reward=0.0,
                         # encourage the robot to keep its angular velocity close to the reference
-                        angvel_reward=1.0,
+                        angvel_reward=0.0,
                         # encourage the robot to keep its body positions close to the reference
                         bodypos_reward=0,
                         # encourage the robot to keep its end effectors close to the reference
                         endeff_reward=0,
                         # 
-                        healthy_reward = 1.0,
+                        healthy_reward = 10.0,
                         
                         
                     )
