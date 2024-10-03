@@ -35,7 +35,7 @@ source ~/.bashrc
 module load cuda/12.2.2
 nvidia-smi
 conda activate stac-mjx-env
-CUDA_VISIBLE_DEVICES={cfg.gpu} python -u main_run.py paths=hyak train={cfg.train.name} dataset={cfg.dataset.dname} train.note=hyak train.num_envs={cfg.train.num_envs}
+CUDA_VISIBLE_DEVICES={cfg.gpu} python -u main.py paths=hyak train={cfg.train.name} dataset={cfg.dataset.dname} train.note=hyak train.num_envs={cfg.train.num_envs}
             """
     print(f"Submitting job")
     print(script)
