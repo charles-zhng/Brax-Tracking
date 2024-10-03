@@ -1,3 +1,4 @@
+name: train_fly_run
 version: ${resolve_default:debug,${..version}}
 gpu: ${resolve_default:1,${..gpu}}
 wandb_project: "eabe_debug"
@@ -9,7 +10,7 @@ num_envs: 2048
 num_timesteps: 3_000_000_000
 eval_every: 50_000_000
 episode_length: 250
-batch_size: 2048
+batch_size: ${train.num_envs}
 learning_rate: 3e-4
 num_minibatches: 32
 num_updates_per_batch: 16

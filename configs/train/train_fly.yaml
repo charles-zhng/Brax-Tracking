@@ -1,3 +1,4 @@
+name: train_fly
 version: ${resolve_default:debug,${..version}}
 gpu: ${resolve_default:0,${..gpu}}
 wandb_project: "eabe_debug"

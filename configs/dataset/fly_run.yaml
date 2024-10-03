@@ -1,4 +1,5 @@
 name: Flybody
+dname: fly_run
 camera: 1
 rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml
 stac_path: ${paths.data_dir}/transform_mocap_fly_freejnt.p
