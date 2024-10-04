@@ -45,3 +45,7 @@ CUDA_VISIBLE_DEVICES={cfg.gpu} python -u main.py paths=hyak train={cfg.train.nam
 
 if __name__ == "__main__":
     submit()
+
+
+##### Saving command ######
+#  python scripts/slurm-run_bbrunton.py paths=hyak train=train_fly_run dataset=fly_run train.note=hyak train.num_envs=1024 gpu=0
