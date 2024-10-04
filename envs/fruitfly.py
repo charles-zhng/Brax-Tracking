@@ -215,7 +215,7 @@ class Fruitfly_Tethered(PipelineEnv):
             track_pos = self._ref_traj.position
             pos_distance = data.qpos[:3] - track_pos[cur_frame]
             pos_reward = self._pos_reward_weight * jp.exp(
-                -400 * jp.sum(pos_distance) ** 2
+                -400 * jp.sum(pos_distance**2)
             )
             track_quat = self._ref_traj.quaternion
             quat_distance = jp.sum(
@@ -229,13 +229,13 @@ class Fruitfly_Tethered(PipelineEnv):
             quat_reward = 0.0
 
         track_joints = self._ref_traj.joints
-        joint_distance = jp.sum(data.qpos - track_joints[cur_frame]) ** 2
+        joint_distance = jp.sum((data.qpos - track_joints[cur_frame])** 2) 
         joint_reward = self._joint_reward_weight * jp.exp(-0.5 * joint_distance)
         info["joint_distance"] = joint_distance
 
         track_angvel = self._ref_traj.angular_velocity
         angvel_reward = self._angvel_reward_weight * jp.exp(
-            -0.5 * jp.sum(data.qvel[3:6] - track_angvel[cur_frame]) ** 2
+            -0.5 * jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2) 
         )
         track_bodypos = self._ref_traj.body_positions
         bodypos_reward = self._bodypos_reward_weight * jp.exp(
@@ -244,9 +244,8 @@ class Fruitfly_Tethered(PipelineEnv):
                 (
                     data.xpos[self._body_idxs]
                     - track_bodypos[cur_frame][self._body_idxs]
-                ).flatten()
+                ).flatten() ** 2
             )
-            ** 2
         )
 
         endeff_reward = self._endeff_reward_weight * jp.exp(
@@ -255,9 +254,8 @@ class Fruitfly_Tethered(PipelineEnv):
                 (
                     data.xpos[self._endeff_idxs]
                     - track_bodypos[cur_frame][self._endeff_idxs]
-                ).flatten()
+                ).flatten()** 2
             )
-            ** 2
         )
 
         min_z, max_z = self._healthy_z_range
@@ -593,7 +591,7 @@ class Fruitfly_Tethered_Free(PipelineEnv):
             track_pos = self._ref_traj.position
             pos_distance = data.qpos[:3] - track_pos[cur_frame]
             pos_reward = self._pos_reward_weight * jp.exp(
-                -400 * jp.sum(pos_distance) ** 2
+                -400 * jp.sum(pos_distance ** 2)
             )
             track_quat = self._ref_traj.quaternion
             quat_distance = jp.sum(
@@ -607,7 +605,7 @@ class Fruitfly_Tethered_Free(PipelineEnv):
             quat_reward = 0.0
 
         track_joints = self._ref_traj.joints
-        joint_distance = jp.sum(data.qpos[7:] - track_joints[cur_frame]) ** 2
+        joint_distance = jp.sum((data.qpos[7:] - track_joints[cur_frame])** 2) 
         joint_reward = self._joint_reward_weight * jp.exp(-0.5 * joint_distance)
         info["joint_distance"] = joint_distance
 
@@ -622,9 +620,8 @@ class Fruitfly_Tethered_Free(PipelineEnv):
                 (
                     data.xpos[self._body_idxs]
                     - track_bodypos[cur_frame][self._body_idxs]
-                ).flatten()
+                ).flatten() ** 2
             )
-            ** 2
         )
 
         endeff_reward = self._endeff_reward_weight * jp.exp(
@@ -633,9 +630,8 @@ class Fruitfly_Tethered_Free(PipelineEnv):
                 (
                     data.xpos[self._endeff_idxs]
                     - track_bodypos[cur_frame][self._endeff_idxs]
-                ).flatten()
+                ).flatten()** 2
             )
-            ** 2
         )
 
         min_z, max_z = self._healthy_z_range
@@ -1068,7 +1064,7 @@ class Fruitfly_Run(PipelineEnv):
         track_pos = self._ref_traj.position
         pos_distance = data.qpos[:3] - track_pos[cur_frame]
         pos_reward = jp.exp(
-            -400 * jp.sum(pos_distance) ** 2
+            -400 * jp.sum(pos_distance** 2)
         )
         track_quat = self._ref_traj.quaternion
         quat_distance = jp.sum(
@@ -1077,13 +1073,13 @@ class Fruitfly_Run(PipelineEnv):
         quat_reward = jp.exp(-4.0 * quat_distance)
         
         track_joints = self._ref_traj.joints
-        joint_distance = jp.sum(data.qpos[7:] - track_joints[cur_frame]) ** 2
+        joint_distance = jp.sum((data.qpos[7:] - track_joints[cur_frame]) ** 2)
         joint_reward = jp.exp(-0.5 * joint_distance)
         state.info["joint_distance"] = joint_distance
 
         track_angvel = self._ref_traj.angular_velocity
         angvel_reward = jp.exp(
-            -0.5 * jp.sum(data.qvel[3:6] - track_angvel[cur_frame]) ** 2
+            -0.5 * jp.sum((data.qvel[3:6] - track_angvel[cur_frame]) ** 2)
         )
         track_bodypos = self._ref_traj.body_positions
         bodypos_reward = jp.exp(
@@ -1092,9 +1088,9 @@ class Fruitfly_Run(PipelineEnv):
                 (
                     data.xpos[self._body_idxs]
                     - track_bodypos[cur_frame][self._body_idxs]
-                ).flatten()
+                ).flatten()** 2
             )
-            ** 2
+            
         )
 
         endeff_reward = jp.exp(
@@ -1103,9 +1099,9 @@ class Fruitfly_Run(PipelineEnv):
                 (
                     data.xpos[self._endeff_idxs]
                     - track_bodypos[cur_frame][self._endeff_idxs]
-                ).flatten()
+                ).flatten()** 2
             )
-            ** 2
+            
         )
         x, xd = data.x, data.xd
         
