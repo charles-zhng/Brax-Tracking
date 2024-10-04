@@ -110,6 +110,37 @@ env_args:
     - tarsus3_T3_right
     - tarsus4_T3_right
     - claw_T3_right
+  site_names: 
+    - tracking[coxa_T1_left]
+    - tracking[femur_T1_left]
+    - tracking[tibia_T1_left]
+    - tracking[tarsus_T1_left]
+    - tracking[claw_T1_left]
+    - tracking[coxa_T1_right]
+    - tracking[femur_T1_right]
+    - tracking[tibia_T1_right]
+    - tracking[tarsus_T1_right]
+    - tracking[claw_T1_right]
+    - tracking[coxa_T2_left]
+    - tracking[femur_T2_left]
+    - tracking[tibia_T2_left]
+    - tracking[tarsus_T2_left]
+    - tracking[claw_T2_left]
+    - tracking[coxa_T2_right]
+    - tracking[femur_T2_right]
+    - tracking[tibia_T2_right]
+    - tracking[tarsus_T2_right]
+    - tracking[claw_T2_right]
+    - tracking[coxa_T3_left]
+    - tracking[femur_T3_left]
+    - tracking[tibia_T3_left]
+    - tracking[tarsus_T3_left]
+    - tracking[claw_T3_left]
+    - tracking[coxa_T3_right]
+    - tracking[femur_T3_right]
+    - tracking[tibia_T3_right]
+    - tracking[tarsus_T3_right]
+    - tracking[claw_T3_right]
   joint_names:
     - coxa_flexion_T1_left
     - coxa_twist_T1_left

@@ -29,6 +29,7 @@ from preprocessing.preprocess import process_clip_to_train
 from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Tethered_Free, Fruitfly_Run
 from utils.utils import *
 from utils.fly_logging import log_eval_rollout
+from utils.fly_logging_run import log_eval_rollout_run
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -135,7 +136,10 @@ def main(cfg: DictConfig) -> None:
         wandb.log(metrics, commit=False)
 
     # Wrap the env in the brax autoreset and episode wrappers
-    rollout_env = custom_wrappers.RenderRolloutWrapperTracking(env)
+    if cfg.dataset.dname == "fly_run":
+        rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Run(env)
+    else:
+        rollout_env = custom_wrappers.RenderRolloutWrapperTracking(env)
     # define the jit reset/step functions
     jit_reset = jax.jit(rollout_env.reset)
     jit_step = jax.jit(rollout_env.step)
@@ -159,7 +163,10 @@ def main(cfg: DictConfig) -> None:
             rollout.append(state)
         
         ##### Log the rollout to wandb #####
-        log_eval_rollout(cfg,rollout,state,env,reference_clip,model_path,num_steps)
+        if cfg.dataset.dname == "fly_run":
+            log_eval_rollout_run(cfg,rollout,state,env,reference_clip,model_path,num_steps)
+        else:
+            log_eval_rollout(cfg,rollout,state,env,reference_clip,model_path,num_steps)
         
 
     OmegaConf.save(cfg, cfg.paths.log_dir / "run_config.yaml")

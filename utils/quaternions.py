@@ -63,10 +63,10 @@ def mult_quat(quat1: jp.ndarray, quat2: jp.ndarray) -> jp.ndarray:
     a2, b2, c2, d2 = quat2[..., 0], quat2[..., 1], quat2[..., 2], quat2[..., 3]
     prod = jp.empty_like(quat1) if quat1.ndim > quat2.ndim else jp.empty_like(
         quat2)
-    prod[..., 0] = a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2
-    prod[..., 1] = a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2
-    prod[..., 2] = a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2
-    prod[..., 3] = a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2
+    prod = prod.at[..., 0].set(a1 * a2 - b1 * b2 - c1 * c2 - d1 * d2)
+    prod = prod.at[..., 1].set(a1 * b2 + b1 * a2 + c1 * d2 - d1 * c2)
+    prod = prod.at[..., 2].set(a1 * c2 - b1 * d2 + c1 * a2 + d1 * b2)
+    prod = prod.at[..., 3].set(a1 * d2 + b1 * c2 - c1 * b2 + d1 * a2)
     return prod
 
 
@@ -82,7 +82,7 @@ def conj_quat(quat: jp.ndarray) -> jp.ndarray:
         Conjugate quaternion(s), array of shape (B, 4).
     """
     quat = quat.copy()
-    quat[..., 1:] *= -1
+    quat = quat.at[..., 1:].set(-1*quat[..., 1:])
     return quat
 
 
@@ -130,7 +130,7 @@ def rotate_vec_with_quat(vec, quat):
         # Broadcast quat to vec.
         quat = jp.tile(quat, vec.shape[:-1] + (1, ))
     vec_aug = jp.zeros_like(quat)
-    vec_aug[..., 1:] = vec
+    vec_aug = vec_aug.at[..., 1:].set(vec)
     vec = mult_quat(quat, mult_quat(vec_aug, reciprocal_quat(quat)))
     return vec[..., 1:]
 
@@ -238,17 +238,17 @@ def quat_z2vec(vec: jp.ndarray) -> jp.ndarray:
     angle = jp.arccos(vec[..., 2:3])
     # Compose quaternion.
     quat = jp.zeros(vec.shape[:-1] + (4, ))
-    quat[..., 0:1] = jp.cos(angle / 2)
-    quat[..., 1:] = jp.sin(angle / 2) * axis
+    quat = quat.at[..., 0:1].set(jp.cos(angle / 2))
+    quat = quat.at[..., 1:].set(jp.sin(angle / 2) * axis)
 
     # Clean edge case placeholders, if there are any.
     for edge_ind in edge_inds:
         ind_vec = tuple(edge_ind) + (slice(2, 3), )
         ind_quat = tuple(edge_ind) + (slice(None), )
         if vec[ind_vec] < 0:
-            quat[ind_quat] = [0., 1., 0., 0.]
+            quat = quat.at[ind_quat].set([0., 1., 0., 0.])
         else:
-            quat[ind_quat] = [1., 0., 0., 0.]
+            quat = quat.at[ind_quat].set([1., 0., 0., 0.])
 
     return quat
 
@@ -269,8 +269,8 @@ def axis_angle_to_quat(axis: jp.ndarray, angle: jp.ndarray) -> jp.ndarray:
     """
     axis = axis / jp.linalg.norm(axis, axis=-1, keepdims=True)
     quat = jp.zeros(axis.shape[:-1] + (4, ))
-    quat[..., 0] = jp.cos(angle / 2)
-    quat[..., 1:] = jp.sin(angle / 2)[..., None] * axis
+    quat = quat.at[..., 0].set(jp.cos(angle / 2))
+    quat = quat.at[..., 1:].set(jp.sin(angle / 2)[..., None] * axis)
     return quat
 
 
