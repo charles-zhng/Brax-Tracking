@@ -1,6 +1,8 @@
 """Vectorized operations with quaternions with batch dimension support."""
 
 import jax.numpy as jp
+import jax
+from brax.base import math 
 
 
 def get_dquat(quat1, quat2):
@@ -220,21 +222,21 @@ def quat_z2vec(vec: jp.ndarray) -> jp.ndarray:
         Array of unit quaternions of shape (B, 4).
     """
     # Find indices of edge cases, if present.
-    edge_inds = jp.argwhere((vec[..., :2] == 0.).all(axis=-1, keepdims=False))
+    edge_inds = jp.argwhere((vec[..., :2] == 0.).all(axis=-1, keepdims=False),size=vec.shape[0])
     if edge_inds.size:
         vec = vec.copy()
         # Temporarily put placeholders into `vec` to avoid nans.
         for edge_ind in edge_inds:
             ind = tuple(edge_ind) + (slice(0, 1), )
-            vec[ind] = 1.  # Placeholder.
+            vec = vec.at[ind].set(1.)  # Placeholder.
 
     # Get axis-and-angle representation first.
-    vec = vec / jp.linalg.norm(vec, axis=-1, keepdims=True)
+    vec.at[:].set(vec / jp.linalg.norm(vec, axis=-1, keepdims=True))
     # Cross product with [0, 0, 1].
     axis = jp.stack([-vec[..., 1], vec[..., 0],
                      jp.zeros_like(vec[..., 0])],
                     axis=-1)
-    axis /= jp.linalg.norm(axis, axis=-1, keepdims=True)
+    axis.at[:].set(axis/jp.linalg.norm(axis, axis=-1, keepdims=True))
     angle = jp.arccos(vec[..., 2:3])
     # Compose quaternion.
     quat = jp.zeros(vec.shape[:-1] + (4, ))
@@ -245,10 +247,15 @@ def quat_z2vec(vec: jp.ndarray) -> jp.ndarray:
     for edge_ind in edge_inds:
         ind_vec = tuple(edge_ind) + (slice(2, 3), )
         ind_quat = tuple(edge_ind) + (slice(None), )
-        if vec[ind_vec] < 0:
-            quat = quat.at[ind_quat].set([0., 1., 0., 0.])
-        else:
-            quat = quat.at[ind_quat].set([1., 0., 0., 0.])
+        # if jp.where(vec[ind_vec] < 0,vec[ind_vec],0):
+        # if vec[ind_vec] < 0:
+        bool_val = vec[ind_vec]
+        quat = jp.where(bool_val < 0,quat,jp.array([0., 1., 0., 0.]))
+        quat = jp.where(bool_val > 0,quat,jp.array([1., 0., 0., 0.]))
+        # quant = quat.at[ind_quat].set(jax.lax.cond(bool_val < 0,f,g))
+        #     quat = quat.at[ind_quat].set([0., 1., 0., 0.])
+        # else:
+        #     quat = quat.at[ind_quat].set([1., 0., 0., 0.])
 
     return quat
 
@@ -315,6 +322,7 @@ def joint_orientation_quat(xaxis: jp.ndarray, qpos: float) -> jp.ndarray:
             of reference, (B, 4).
     """
     # Quaternion that rotates from Z to `xaxis`.
+    
     quat1 = quat_z2vec(xaxis)
 
     # Quaternion that rotates around `xaxis` by `qpos`.
