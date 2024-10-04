@@ -6,7 +6,7 @@ from brax.base import Base, Motion, Transform
 from brax.io import mjcf as mjcf_brax
 from brax import math as brax_math
 from brax import base
-from typing import Any, List, Sequence
+from typing import Any, List, Sequence, Dict, Tuple
 
 from utils import quaternions
 # from dm_control.locomotion.walkers import rescale
@@ -775,6 +775,10 @@ from ml_collections import config_dict
 
 
 
+
+
+from ml_collections import config_dict
+
 def get_config():
     """Returns reward config for barkour quadruped environment."""
 
@@ -790,9 +794,9 @@ def get_config():
                         # Tracking rewards are computed using exp(-delta^2/sigma)
                         # sigma can be a hyperparameters to tune.
                         # Track the base x-y velocity (no z-velocity tracking.)
-                        tracking_lin_vel=10,
+                        tracking_lin_vel=1,
                         # Penalize non-zero roll and pitch angles. L2 penalty.
-                        orientation=-2.0,
+                        orientation=-1.0,
                         # L2 regularization of joint torques, |tau|^2.
                         torques=0, # -0.0002
                         # Penalize the change in the action and encourage smooth
@@ -801,7 +805,7 @@ def get_config():
                         # Encourage long swing steps.  However, it does not
                         stand_still=-0.5,
                         # Early termination penalty.
-                        termination=-10.0,
+                        termination=-1.0,
                         # ignore position reward
                         pos_reward=0,
                         # encourage the robot to face forward
@@ -809,13 +813,13 @@ def get_config():
                         # encourage the robot to keep its joints close to the reference
                         joint_reward=0.0,
                         # encourage the robot to keep its angular velocity close to the reference
-                        angvel_reward=0.0,
+                        # angvel_reward=0.0,
                         # encourage the robot to keep its body positions close to the reference
-                        bodypos_reward=0,
+                        # bodypos_reward=0,
                         # encourage the robot to keep its end effectors close to the reference
-                        endeff_reward=0,
+                        # endeff_reward=0,
                         # 
-                        healthy_reward = 10.0,
+                        # healthy_reward = 10.0,
                         
                         
                     )
@@ -845,6 +849,7 @@ class Fruitfly_Run(PipelineEnv):
         appendage_names: List[str],
         body_names: List[str],
         joint_names: List[str],
+        site_names: List[str],
         mocap_hz: int = 250,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_fast.xml",
         obs_noise: float = 0.05,
@@ -869,6 +874,7 @@ class Fruitfly_Run(PipelineEnv):
         ls_iterations: int = 6,
         terminate_when_unhealthy=True,
         free_jnt=True,
+        inference_mode=False,
         **kwargs,
     ):
         spec = mujoco.MjSpec()
@@ -920,19 +926,7 @@ class Fruitfly_Run(PipelineEnv):
         self._reset_noise_scale = reset_noise_scale
         self._init_q = jp.array(sys.mj_model.keyframe("home").qpos)
         self._default_pose = sys.mj_model.keyframe("home").qpos[7:]
-        self.lowers = jp.array(
-            [
-                -2,
-            ]
-            * 36
-        )
-        self.uppers = jp.array(
-            [
-                2,
-            ]
-            * 36
-        )
-        
+
         self._thorax_idx = mujoco.mj_name2id(
             mj_model, mujoco.mju_str2Type("body"), center_of_mass
         )
@@ -941,6 +935,12 @@ class Fruitfly_Run(PipelineEnv):
             [
                 mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("joint"), joint)
                 for joint in joint_names
+            ]
+        )
+        self._site_idxs = jp.array(
+            [
+                mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("site"), site)
+                for site in site_names
             ]
         )
 
@@ -976,6 +976,7 @@ class Fruitfly_Run(PipelineEnv):
         self._nu = sys.nu
         
         self._free_jnt = free_jnt
+        self._inference_mode = inference_mode
         self._mocap_hz = mocap_hz
         self._bad_pose_dist = bad_pose_dist
         self._too_far_dist = too_far_dist
@@ -995,7 +996,7 @@ class Fruitfly_Run(PipelineEnv):
         self._terminate_when_unhealthy = terminate_when_unhealthy
 
     def sample_command(self, rng: jax.Array) -> jax.Array:
-        lin_vel_x = [0.01, 0.05]  # min max [m/s]
+        lin_vel_x = [0.1, 1.5]  # min max [m/s]
         # lin_vel_y = [-0.8, 0.8]  # min max [m/s]
         # ang_vel_yaw = [-0.7, 0.7]  # min max [rad/s]
 
@@ -1059,91 +1060,90 @@ class Fruitfly_Run(PipelineEnv):
         )
         # physics step
         cur_frame = state.info["cur_frame"]
-        track_pos = self._ref_traj.position
-        pos_distance = data.qpos[:3] - track_pos[cur_frame]
-        pos_reward = jp.exp(
-            -400 * jp.sum(pos_distance** 2)
-        )
-        track_quat = self._ref_traj.quaternion
-        quat_distance = jp.sum(
-            self._bounded_quat_dist(data.qpos[3:7], track_quat[cur_frame]) ** 2
-        )
-        quat_reward = jp.exp(-4.0 * quat_distance)
         
-        track_joints = self._ref_traj.joints
-        joint_distance = jp.sum((data.qpos[7:] - track_joints[cur_frame]) ** 2)
-        joint_reward = jp.exp(-0.5 * joint_distance)
-        state.info["joint_distance"] = joint_distance
+        # track_pos = self._ref_traj.position
+        # pos_distance = data.qpos[:3] - track_pos[cur_frame]
+        # pos_reward = jp.exp(
+        #     -400 * jp.sum(pos_distance) ** 2
+        # )
+        # track_quat = self._ref_traj.quaternion
+        # quat_distance = jp.sum(
+        #     self._bounded_quat_dist(data.qpos[3:7], track_quat[cur_frame]) ** 2
+        # )
+        # quat_reward = jp.exp(-4.0 * quat_distance)
+        
+        # track_joints = self._ref_traj.joints
+        # joint_distance = jp.sum(data.qpos[7:] - track_joints[cur_frame]) ** 2
+        # joint_reward = jp.exp(-0.5 * joint_distance)
+        # state.info["joint_distance"] = joint_distance
 
-        track_angvel = self._ref_traj.angular_velocity
-        angvel_reward = jp.exp(
-            -0.5 * jp.sum((data.qvel[3:6] - track_angvel[cur_frame]) ** 2)
-        )
-        track_bodypos = self._ref_traj.body_positions
-        bodypos_reward = jp.exp(
-            -6.0
-            * jp.sum(
-                (
-                    data.xpos[self._body_idxs]
-                    - track_bodypos[cur_frame][self._body_idxs]
-                ).flatten()** 2
-            )
-            
-        )
+        # track_angvel = self._ref_traj.angular_velocity
+        # angvel_reward = jp.exp(
+        #     -0.5 * jp.sum(data.qvel[3:6] - track_angvel[cur_frame]) ** 2
+        # )
+        # track_bodypos = self._ref_traj.body_positions
+        # bodypos_reward = jp.exp(
+        #     -6.0
+        #     * jp.sum(
+        #         (
+        #             data.xpos[self._body_idxs]
+        #             - track_bodypos[cur_frame][self._body_idxs]
+        #         ).flatten()
+        #     )
+        #     ** 2
+        # )
 
-        endeff_reward = jp.exp(
-            -0.75
-            * jp.sum(
-                (
-                    data.xpos[self._endeff_idxs]
-                    - track_bodypos[cur_frame][self._endeff_idxs]
-                ).flatten()** 2
-            )
-            
-        )
+        # endeff_reward = jp.exp(
+        #     -0.75
+        #     * jp.sum(
+        #         (
+        #             data.xpos[self._endeff_idxs]
+        #             - track_bodypos[cur_frame][self._endeff_idxs]
+        #         ).flatten()
+        #     )
+        #     ** 2
+        # )
         x, xd = data.x, data.xd
         
         min_z, max_z = self._healthy_z_range
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] > max_z, 0.0, is_healthy)
         healthy_reward = self._healthy_reward
-        state.info["quat_distance"] = quat_distance
-        bad_quat = jp.where(quat_distance > self._bad_quat_dist, 1.0, 0.0)
-        ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
-        # jax.debug.print(f'is_healthy: {is_healthy}')
+        # state.info["quat_distance"] = quat_distance
+        # bad_quat = jp.where(quat_distance > self._bad_quat_dist, 1.0, 0.0)
+        # ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
 
 
 
-        # observation data
+        # # observation data
         obs = self._get_obs(data, state.info, state.obs)
         joint_angles = data.q[7:]
         joint_vel = data.qd  ##### need to restrict to only legs
 
-        # foot contact data based on z-position
-        foot_pos = data.site_xpos[
-            self._endeff_idxs
-        ]  # pytype: disable=attribute-error
-        foot_contact_z = foot_pos[:, 2] - self._foot_radius
-        contact = foot_contact_z < 1e-3  # a mm or less off the floor
+        # # foot contact data based on z-position
+        # foot_pos = data.site_xpos[
+        #     self._endeff_idxs
+        # ]  # pytype: disable=attribute-error
+        # foot_contact_z = foot_pos[:, 2] - self._foot_radius
+        # contact = foot_contact_z < 1e-3  # a mm or less off the floor
 
 
         # done if joint limits are reached or robot is falling
         up = jp.array([0.0, 0.0, 1.0])
         done = jp.dot(brax_math.rotate(up, x.rot[self._thorax_idx]), up) < 0
-        done |= jp.any(joint_angles < self.lowers)
-        done |= jp.any(joint_angles > self.uppers)
         done |= data.x.pos[self._thorax_idx, 2] < -0.14
         done |= data.x.pos[self._thorax_idx, 2] > 0.1
         
-        # reward
+        # # reward
+        rewards_temp = self.get_reward_factors(data)
         rewards = {
-            'joint_reward': joint_reward,
-            'pos_reward': pos_reward,
-            'quat_reward': quat_reward,
-            'angvel_reward': angvel_reward,
-            'bodypos_reward': bodypos_reward,
-            'endeff_reward': endeff_reward,
-            'healthy_reward': healthy_reward,
+            'pos_reward': rewards_temp[0],
+            'joint_reward': rewards_temp[1],
+            'quat_reward': rewards_temp[2],
+            # 'angvel_reward': angvel_reward,
+            # 'bodypos_reward': bodypos_reward,
+            # 'endeff_reward': endeff_reward,
+            # 'healthy_reward': healthy_reward,
             "tracking_lin_vel": (
                 self._reward_tracking_lin_vel(state.info["command"], x, xd)
             ),
@@ -1171,7 +1171,7 @@ class Fruitfly_Run(PipelineEnv):
         # state management
         state.info["last_act"] = action
         state.info["last_vel"] = joint_vel
-        state.info["last_contact"] = contact
+        # state.info["last_contact"] = contact
         state.info["rewards"] = rewards
         state.info["step"] += 1
         state.info["rng"] = rng
@@ -1229,8 +1229,131 @@ class Fruitfly_Run(PipelineEnv):
         obs = jp.roll(obs_history, obs.size).at[: obs.size].set(obs)
 
         return obs
-
+    
+    def get_reward_factors(self, data):
+        """Returns factorized reward terms."""
+        if self._inference_mode:
+            return (1,)
+        step = round(data.time / self._dt)
+        walker_ft = self._get_walker_features(data, self._joint_idxs,
+                                        self._site_idxs)
+        reference_ft = self._get_reference_features(self._ref_traj, step)
+        reward_factors = self._reward_factors_deep_mimic(
+            walker_features=walker_ft,
+            reference_features=reference_ft,
+            weights=(0, 1, 1))
+        return reward_factors
+    
     # ------------ reward functions----------------
+    
+    def _compute_diffs(self, walker_features: Dict[str, jp.ndarray],
+                    reference_features: Dict[str, jp.ndarray],
+                    n: int = 2) -> Dict[str, float]:
+        """Computes sums of absolute values of differences between components of
+        model and reference features.
+
+        Args:
+            model_features, reference_features: Dictionaries of features to compute
+                differences of.
+            n: Exponent for differences. E.g., for squared differences use n = 2.
+
+        Returns:
+            Dictionary of differences, one value for each entry of input dictionary.
+        """
+        diffs = {}
+        for k in walker_features:
+            if 'quat' not in k:
+                # Regular vector differences.
+                diffs[k] = jp.sum(
+                    jp.abs(walker_features[k] - reference_features[k])**n)
+            else:
+                # Quaternion differences (always positive, no need to use jp.abs).
+                diffs[k] = jp.sum(
+                    quaternions.quat_dist_short_arc(walker_features[k],
+                                                    reference_features[k])**n)
+        return diffs
+
+
+    def _get_walker_features(self, data, mocap_joints, mocap_sites):
+        """Returns model pose features."""
+
+        qpos = data.qpos[mocap_joints]
+        qvel = data.qvel[mocap_joints]
+        sites =data.xpos[mocap_sites]
+        # root2site = quaternions.get_egocentric_vec(qpos[:3], sites, qpos[3:7])
+
+        # Joint quaternions in local egocentric reference frame,
+        # (except root quaternion, which is in world reference frame).
+        root_quat = data.qpos[3:7]
+        
+        xaxis1 = data.xaxis[mocap_joints]
+        xaxis1 = quaternions.rotate_vec_with_quat(
+            xaxis1, quaternions.reciprocal_quat(root_quat))
+        
+        joint_quat = quaternions.joint_orientation_quat(xaxis1, qpos)
+        joint_quat = jp.vstack((root_quat, joint_quat))
+
+        model_features = {
+            'com': qpos[:3],
+            'qvel': qvel,
+            # 'root2site': root2site,
+            'joint_quat': joint_quat,
+        }
+
+        return model_features
+
+
+    def _get_reference_features(self,reference_clip, step):
+        """Returns reference pose features."""
+        qpos_ref = reference_clip.joints[step, :]
+        qvel_ref = reference_clip.joints_velocity[step, :]
+        # root2site_ref = reference_clip['root2site'][step, :, :]
+        joint_quat_ref = reference_clip.body_quaternions[step, self._joint_idxs, :]
+        joint_quat_ref = jp.vstack((reference_clip.quaternion[step], joint_quat_ref))
+
+        reference_features = {
+            'com': reference_clip.position[step, :],
+            'qvel': qvel_ref,
+            # 'root2site': root2site_ref,
+            'joint_quat': joint_quat_ref,
+        }
+        return reference_features
+
+
+    def _reward_factors_deep_mimic(self, walker_features,
+                                reference_features,
+                                std=None,
+                                weights=(1, 1, 1)):
+        """Returns four reward factors, each of which is a product of individual
+        (unnormalized) Gaussian distributions evaluated for the four model
+        and reference data features:
+            1. Cartesian center-of-mass position, qpos[:3].
+            2. qvel for all joints, including the root joint.
+            3. Egocentric end-effector vectors.
+            4. All joint orientation quaternions (in egocentric local reference
+            frame), and the root quaternion.
+
+        The reward factors are equivalent to the ones in the DeepMimic:
+        https://arxiv.org/abs/1804.02717
+        """
+        if std is None:
+            # Default values for fruitfly walking imitation task.
+            std = {
+                'com': 0.078487,
+                'qvel': 53.7801,
+                # 'root2site': 0.0735,
+                'joint_quat': 1.2247
+            }
+
+        diffs = self._compute_diffs(walker_features, reference_features, n=2)
+        reward_factors = []
+        for k in walker_features.keys():
+            reward_factors.append(jp.exp(-0.5 / std[k]**2 * diffs[k]))
+        reward_factors = jp.array(reward_factors)
+        reward_factors *= jp.asarray(weights)
+
+        return reward_factors
+    
     def _reward_lin_vel_z(self, xd: Motion) -> jax.Array:
         # Penalize z axis base linear velocity
         return jp.square(xd.vel[0, 2])
@@ -1272,15 +1395,15 @@ class Fruitfly_Run(PipelineEnv):
         ang_vel_error = jp.square(commands[2] - base_ang_vel[2])
         return jp.exp(-ang_vel_error / self.reward_config.rewards.tracking_sigma)
 
-    def _reward_feet_air_time(
-        self, air_time: jax.Array, first_contact: jax.Array, commands: jax.Array
-    ) -> jax.Array:
-        # Reward air time.
-        rew_air_time = jp.sum((air_time - 0.1) * first_contact)
-        rew_air_time *= (
-            brax_math.normalize(commands[:2])[1] > 0.05
-        )  # no reward for zero command
-        return rew_air_time
+    # def _reward_feet_air_time(
+    #     self, air_time: jax.Array, first_contact: jax.Array, commands: jax.Array
+    # ) -> jax.Array:
+    #     # Reward air time.
+    #     rew_air_time = jp.sum((air_time - 0.1) * first_contact)
+    #     rew_air_time *= (
+    #         brax_math.normalize(commands[:2])[1] > 0.05
+    #     )  # no reward for zero command
+    #     return rew_air_time
 
     def _reward_stand_still(
         self,
@@ -1292,23 +1415,23 @@ class Fruitfly_Run(PipelineEnv):
             brax_math.normalize(commands[:2])[1] < 0.1
         )
 
-    def _reward_foot_slip(
-        self, data: base.State, contact_filt: jax.Array
-    ) -> jax.Array:
-        # get velocities at feet which are offset from lower legs
-        # pytype: disable=attribute-error
-        pos = data.site_xpos[self._endeff_idxs]  # feet position
-        feet_offset = pos - data.xpos[self._lower_leg_body_id]
-        # pytype: enable=attribute-error
-        offset = base.Transform.create(pos=feet_offset)
-        foot_indices = self._lower_leg_body_id - 1  # we got rid of the world body
-        foot_vel = offset.vmap().do(data.xd.take(foot_indices)).vel
+    # def _reward_foot_slip(
+    #     self, data: base.State, contact_filt: jax.Array
+    # ) -> jax.Array:
+    #     # get velocities at feet which are offset from lower legs
+    #     # pytype: disable=attribute-error
+    #     pos = data.site_xpos[self._endeff_idxs]  # feet position
+    #     feet_offset = pos - data.xpos[self._lower_leg_body_id]
+    #     # pytype: enable=attribute-error
+    #     offset = base.Transform.create(pos=feet_offset)
+    #     foot_indices = self._lower_leg_body_id - 1  # we got rid of the world body
+    #     foot_vel = offset.vmap().do(data.xd.take(foot_indices)).vel
 
-        # Penalize large feet velocity for feet that are in contact with the ground.
-        return jp.sum(jp.square(foot_vel[:, :2]) * contact_filt.reshape((-1, 1)))
+    #     # Penalize large feet velocity for feet that are in contact with the ground.
+    #     return jp.sum(jp.square(foot_vel[:, :2]) * contact_filt.reshape((-1, 1)))
 
     def _reward_termination(self, done: jax.Array, step: jax.Array) -> jax.Array:
-        return done & (step < 500)
+        return done & (step < 1000)
     
     def _bounded_quat_dist(self, source: np.ndarray, target: np.ndarray) -> np.ndarray:
         """Computes a quaternion distance limiting the difference to a max of pi/2.
@@ -1348,112 +1471,3 @@ class Fruitfly_Run(PipelineEnv):
             height=height,
             scene_option=scene_option,
         )
-
-# def compute_diffs(walker_features: Dict[str, jp.ndarray],
-#                   reference_features: Dict[str, jp.ndarray],
-#                   n: int = 2) -> Dict[str, float]:
-#     """Computes sums of absolute values of differences between components of
-#     model and reference features.
-
-#     Args:
-#         model_features, reference_features: Dictionaries of features to compute
-#             differences of.
-#         n: Exponent for differences. E.g., for squared differences use n = 2.
-
-#     Returns:
-#         Dictionary of differences, one value for each entry of input dictionary.
-#     """
-#     diffs = {}
-#     for k in walker_features:
-#         if 'quat' not in k:
-#             # Regular vector differences.
-#             diffs[k] = jp.sum(
-#                 jp.abs(walker_features[k] - reference_features[k])**n)
-#         else:
-#             # Quaternion differences (always positive, no need to use jp.abs).
-#             diffs[k] = jp.sum(
-#                 quaternions.quat_dist_short_arc(walker_features[k],
-#                                                 reference_features[k])**n)
-#     return diffs
-
-
-# def get_walker_features(physics, mocap_joints, mocap_sites):
-#     """Returns model pose features."""
-
-#     qpos = physics.bind(mocap_joints).qpos
-#     qvel = physics.bind(mocap_joints).qvel
-#     sites = physics.bind(mocap_sites).xpos
-#     root2site = quaternions.get_egocentric_vec(qpos[:3], sites, qpos[3:7])
-
-#     # Joint quaternions in local egocentric reference frame,
-#     # (except root quaternion, which is in world reference frame).
-#     root_quat = qpos[3:7]
-#     xaxis1 = physics.bind(mocap_joints).xaxis[1:, :]
-#     xaxis1 = quaternions.rotate_vec_with_quat(
-#         xaxis1, quaternions.reciprocal_quat(root_quat))
-#     qpos7 = qpos[7:]
-#     joint_quat = quaternions.joint_orientation_quat(xaxis1, qpos7)
-#     joint_quat = jp.vstack((root_quat, joint_quat))
-
-#     model_features = {
-#         'com': qpos[:3],
-#         'qvel': qvel,
-#         'root2site': root2site,
-#         'joint_quat': joint_quat,
-#     }
-
-#     return model_features
-
-
-# def get_reference_features(reference_data, step):
-#     """Returns reference pose features."""
-
-#     qpos_ref = reference_data['qpos'][step, :]
-#     qvel_ref = reference_data['qvel'][step, :]
-#     root2site_ref = reference_data['root2site'][step, :, :]
-#     joint_quat_ref = reference_data['joint_quat'][step, :, :]
-#     joint_quat_ref = jp.vstack((qpos_ref[3:7], joint_quat_ref))
-
-#     reference_features = {
-#         'com': reference_data['qpos'][step, :3],
-#         'qvel': qvel_ref,
-#         'root2site': root2site_ref,
-#         'joint_quat': joint_quat_ref,
-#     }
-
-#     return reference_features
-
-
-# def reward_factors_deep_mimic(walker_features,
-#                               reference_features,
-#                               std=None,
-#                               weights=(1, 1, 1, 1)):
-#     """Returns four reward factors, each of which is a product of individual
-#     (unnormalized) Gaussian distributions evaluated for the four model
-#     and reference data features:
-#         1. Cartesian center-of-mass position, qpos[:3].
-#         2. qvel for all joints, including the root joint.
-#         3. Egocentric end-effector vectors.
-#         4. All joint orientation quaternions (in egocentric local reference
-#           frame), and the root quaternion.
-
-#     The reward factors are equivalent to the ones in the DeepMimic:
-#     https://arxiv.org/abs/1804.02717
-#     """
-#     if std is None:
-#         # Default values for fruitfly walking imitation task.
-#         std = {
-#             'com': 0.078487,
-#             'qvel': 53.7801,
-#             'root2site': 0.0735,
-#             'joint_quat': 1.2247
-#         }
-
-#     diffs = compute_diffs(walker_features, reference_features, n=2)
-#     reward_factors = []
-#     for k in walker_features.keys():
-#         reward_factors.append(jp.exp(-0.5 / std[k]**2 * diffs[k]))
-#     reward_factors = jp.array(reward_factors)
-#     reward_factors *= jp.asarray(weights)
-
-#     return reward_factors
