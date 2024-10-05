@@ -86,7 +86,6 @@ class RenderRolloutWrapperTracking(Wrapper):
         rng, rng1, rng2 = jax.random.split(rng, 3)
         info = {
             "cur_frame": 0,
-            "steps_taken_cur_frame": 0,
             "summed_pos_distance": 0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,

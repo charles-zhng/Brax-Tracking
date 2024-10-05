@@ -7,12 +7,11 @@ clip_idx: 0
 clip_length: 601
 ref_traj_length: 15
 env_args:
-  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" 
+  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fastball.xml" 
   scale_factor: 1 
   solver: cg
   iterations: 6
   ls_iterations: 6
-  torque_actuators: False
   physics_steps_per_control_step: 10
   too_far_dist: 0.1
   bad_pose_dist: 1000.0 # 60.0
@@ -28,6 +27,7 @@ env_args:
   healthy_z_range: [-0.05, 0.1]
   terminate_when_unhealthy: True
   free_jnt: False
+  inference_mode: False
   end_eff_names:
     - claw_T1_left
     - claw_T1_right
@@ -110,6 +110,37 @@ env_args:
     - tarsus3_T3_right
     - tarsus4_T3_right
     - claw_T3_right
+  site_names: 
+    - tracking[coxa_T1_left]
+    - tracking[femur_T1_left]
+    - tracking[tibia_T1_left]
+    - tracking[tarsus_T1_left]
+    - tracking[claw_T1_left]
+    - tracking[coxa_T1_right]
+    - tracking[femur_T1_right]
+    - tracking[tibia_T1_right]
+    - tracking[tarsus_T1_right]
+    - tracking[claw_T1_right]
+    - tracking[coxa_T2_left]
+    - tracking[femur_T2_left]
+    - tracking[tibia_T2_left]
+    - tracking[tarsus_T2_left]
+    - tracking[claw_T2_left]
+    - tracking[coxa_T2_right]
+    - tracking[femur_T2_right]
+    - tracking[tibia_T2_right]
+    - tracking[tarsus_T2_right]
+    - tracking[claw_T2_right]
+    - tracking[coxa_T3_left]
+    - tracking[femur_T3_left]
+    - tracking[tibia_T3_left]
+    - tracking[tarsus_T3_left]
+    - tracking[claw_T3_left]
+    - tracking[coxa_T3_right]
+    - tracking[femur_T3_right]
+    - tracking[tibia_T3_right]
+    - tracking[tarsus_T3_right]
+    - tracking[claw_T3_right]
   joint_names:
     - coxa_flexion_T1_left
     - coxa_twist_T1_left
