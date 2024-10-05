@@ -36,6 +36,9 @@ hydra:
             - dataset.train.gpu
             - checkpoint
             - gpu
+            - train
+            - train.note
+
   run:
     dir: ${paths.base_dir}/${hydra:job.override_dirname}
   sweep:

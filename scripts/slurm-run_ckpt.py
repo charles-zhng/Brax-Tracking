@@ -14,6 +14,12 @@ def slurm_submit(script):
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def submit(cfg: DictConfig) -> None:
+    
+    import uuid
+    # Generates a completely random UUID (version 4)
+    run_id = uuid.uuid4()
+    
+    
     """Submit job to cluster."""
     script = f"""#!/bin/bash
 #SBATCH --job-name=Fruitfly    
@@ -29,13 +35,15 @@ def submit(cfg: DictConfig) -> None:
 #SBATCH -o ./OutFiles/slurm-%A_%a.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=eabe@uw.edu
+#SBATCH --signal=B:TERM@05:00
+
 module load cuda/12.2.2
 set -x
 source ~/.bashrc
 module load cuda/12.2.2
 nvidia-smi
 conda activate stac-mjx-env
-CUDA_VISIBLE_DEVICES={cfg.gpu} python -u main.py paths=hyak train={cfg.train.name} dataset={cfg.dataset.dname} train.note=hyak train.num_envs={cfg.train.num_envs}
+CUDA_VISIBLE_DEVICES={cfg.gpu} python -u main_requeue.py paths=hyak train={cfg.train.name} dataset={cfg.dataset.dname} train.note=hyak train.num_envs={cfg.train.num_envs} +run_id={run_id}
             """
     print(f"Submitting job")
     print(script)

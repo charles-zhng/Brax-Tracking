@@ -50,6 +50,7 @@ class Fruitfly_Tethered(PipelineEnv):
         healthy_z_range=(0.03, 0.5),
         physics_steps_per_control_step=10,
         reset_noise_scale=1e-3,
+        sim_timestep: float = 2e-4,
         solver="cg",
         iterations: int = 6,
         ls_iterations: int = 6,
@@ -72,7 +73,7 @@ class Fruitfly_Tethered(PipelineEnv):
         }[solver.lower()]
         mj_model.opt.iterations = iterations
         mj_model.opt.ls_iterations = ls_iterations
-        mj_model.opt.timestep =2e-4
+        mj_model.opt.timestep = sim_timestep
         mj_model.opt.jacobian = 0
 
         sys = mjcf_brax.load_model(mj_model)
@@ -118,6 +119,7 @@ class Fruitfly_Tethered(PipelineEnv):
                 for body in end_eff_names
             ]
         )
+        self._sim_timestep = sim_timestep
         self._free_jnt = free_jnt
         self._inference_mode = inference_mode
         self._mocap_hz = mocap_hz

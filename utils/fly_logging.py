@@ -31,7 +31,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
         )
         
     # Log the info for the rollout
-    for info_metric in ['summed_pos_distance','joint_distance','quat_distance','angvel_distance','endeff_distance','thorax_height']:
+    for info_metric in ['summed_pos_distance','joint_distance','quat_distance','angvel_distance','endeff_distance']:
         info_metric_values = [state.info[info_metric] for state in rollout]
         table = wandb.Table(
             data=[[x, y] for (x, y) in zip(range(len(info_metric_values)), info_metric_values)],
@@ -87,8 +87,8 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
         "cg": mujoco.mjtSolver.mjSOL_CG,
         "newton": mujoco.mjtSolver.mjSOL_NEWTON,
     }["cg"]
-    mj_model.opt.iterations = 6
-    mj_model.opt.ls_iterations = 6
+    mj_model.opt.iterations = cfg.dataset.env_args.iterations
+    mj_model.opt.ls_iterations = cfg.dataset.env_args.ls_iterations
     mj_model.opt.timestep = env.sys.mj_model.opt.timestep
     
     mj_data = mujoco.MjData(mj_model)
