@@ -9,7 +9,7 @@ note:
 num_envs: 1024 
 num_timesteps: 5_000_000_000
 eval_every: 50_000_000
-episode_length: 250
+episode_length: 601
 batch_size: ${train.num_envs}
 learning_rate: 3e-4
 num_minibatches: 32

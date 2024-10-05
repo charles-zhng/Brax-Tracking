@@ -10,9 +10,12 @@ class RenderRolloutWrapperTracking(Wrapper):
         rng, rng1, rng2 = jax.random.split(rng, 3)
         info = {
             "start_frame": 0,
-            # "summed_pos_distance": 0.0,
+            "summed_pos_distance": 0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
+            "angvel_distance": 0.0,
+            "bodypos_distance": 0.0,
+            "endeff_distance": 0.0,
         }
 
         low, hi = -self._reset_noise_scale, self._reset_noise_scale

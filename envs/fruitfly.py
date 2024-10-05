@@ -33,10 +33,10 @@ class Fruitfly_Tethered(PipelineEnv):
         site_names: List[str],
         scale_factor: float,
         clip_length: int,
-        mocap_hz: int = 250,
+        mocap_hz: int = 200,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_free.xml",
         ref_len: int = 5,
-        too_far_dist=0.1,
+        too_far_dist=jp.inf,
         bad_pose_dist=jp.inf,
         bad_quat_dist=jp.inf,
         ctrl_cost_weight=0.01,
@@ -150,6 +150,9 @@ class Fruitfly_Tethered(PipelineEnv):
             "summed_pos_distance": 0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
+            "angvel_distance": 0.0,
+            "bodypos_distance": 0.0,
+            "endeff_distance": 0.0,
         }
 
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
@@ -210,40 +213,29 @@ class Fruitfly_Tethered(PipelineEnv):
             )
             quat_reward = self._quat_reward_weight * jp.exp(-4.0 * quat_distance)
         else:
-            pos_distance = jp.zeros(3)
+            pos_distance = 0.0
             quat_distance = 0.0
             pos_reward = 0.0
             quat_reward = 0.0
 
         track_joints = self._ref_traj.joints
         joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame])** 2) 
-        joint_reward = self._joint_reward_weight * jp.exp(-0.5 * joint_distance)
+        joint_reward = self._joint_reward_weight * jp.exp(-0.1 * joint_distance)
         info["joint_distance"] = joint_distance
 
         track_angvel = self._ref_traj.angular_velocity
-        angvel_reward = self._angvel_reward_weight * jp.exp(
-            -0.5 * jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2) 
-        )
+        angvel_distance = jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2)
+        angvel_reward = self._angvel_reward_weight * jp.exp(-0.01 * angvel_distance)
+        info["angvel_distance"]
+        
         track_bodypos = self._ref_traj.body_positions
-        bodypos_reward = self._bodypos_reward_weight * jp.exp(
-            -6.0
-            * jp.sum(
-                (
-                    data.xpos[self._body_idxs]
-                    - track_bodypos[cur_frame][self._body_idxs]
-                ).flatten() ** 2
-            )
-        )
-
-        endeff_reward = self._endeff_reward_weight * jp.exp(
-            -0.75
-            * jp.sum(
-                (
-                    data.xpos[self._endeff_idxs]
-                    - track_bodypos[cur_frame][self._endeff_idxs]
-                ).flatten()** 2
-            )
-        )
+        bodypos_distance = jp.sum((data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]).flatten()** 2)
+        bodypos_reward = self._bodypos_reward_weight * jp.exp(-2.0 * bodypos_distance)
+        info["bodypos_distance"] = bodypos_distance
+        
+        endeff_distance = jp.sum((data.xpos[self._endeff_idxs] - track_bodypos[cur_frame][self._endeff_idxs]).flatten()** 2)
+        endeff_reward = self._endeff_reward_weight * jp.exp(-3 * endeff_distance)
+        info["endeff_distance"] = endeff_distance
 
         min_z, max_z = self._healthy_z_range
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
