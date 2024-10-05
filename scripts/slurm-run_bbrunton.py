@@ -30,9 +30,8 @@ def submit(cfg: DictConfig) -> None:
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=eabe@uw.edu
 module load cuda/12.2.2
-set -x
 source ~/.bashrc
-module load cuda/12.2.2
+set -x
 nvidia-smi
 conda activate stac-mjx-env
 CUDA_VISIBLE_DEVICES={cfg.gpu} python -u main.py paths=hyak train={cfg.train.name} dataset={cfg.dataset.dname} train.note=hyak train.num_envs={cfg.train.num_envs}
