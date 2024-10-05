@@ -126,6 +126,7 @@ class Fruitfly_Tethered(PipelineEnv):
         self._bad_quat_dist = bad_quat_dist
         self._ref_traj = reference_clip
         self._ref_len = ref_len
+        self._clip_len = clip_length
         self._pos_reward_weight = pos_reward_weight
         self._quat_reward_weight = quat_reward_weight
         self._joint_reward_weight = joint_reward_weight
