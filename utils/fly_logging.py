@@ -12,7 +12,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     '''Log the rollout to wandb'''
     
     # Log the metrics for the rollout
-    for metric in ['pos_reward','bodypos_reward','joint_reward','thorax_height']:
+    for metric in ['pos_reward','bodypos_reward','joint_reward']:
         metric_values = [state.metrics[metric] for state in rollout]
         table = wandb.Table(
             data=[[x, y] for (x, y) in zip(range(len(metric_values)), metric_values)],
@@ -48,6 +48,25 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
             },
             commit=False,
         )
+        
+    thorax_heights = [
+        state.pipeline_state.xpos[env._thorax_idx][2] for state in rollout
+    ]
+    table = wandb.Table(
+        data=[[x, y] for (x, y) in zip(range(len(thorax_heights)), thorax_heights)],
+        columns=["frame", "thorax_heights"],
+    )
+    wandb.log(
+        {
+            "eval/rollout_thorax_heights": wandb.plot.line(
+                table,
+                "frame",
+                "thorax_heights",
+                title="thorax_heights for each rollout frame",
+            )
+        },
+        commit=False,
+    )
     
     # Render the walker with the reference expert demonstration trajectory
     os.environ["MUJOCO_GL"] = "osmesa"
