@@ -996,7 +996,7 @@ class Fruitfly_Run(PipelineEnv):
         self._terminate_when_unhealthy = terminate_when_unhealthy
 
     def sample_command(self, rng: jax.Array) -> jax.Array:
-        lin_vel_x = [0.1, 1.5]  # min max [m/s]
+        lin_vel_x = [0.1, 1.0]  # min max [m/s]
         # lin_vel_y = [-0.8, 0.8]  # min max [m/s]
         # ang_vel_yaw = [-0.7, 0.7]  # min max [rad/s]
 

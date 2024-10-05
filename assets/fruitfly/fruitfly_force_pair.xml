@@ -6,9 +6,6 @@
   <size nkey="1"/>
 
   <default>
-    <!-- <default class="mocap_site">
-      <site type="sphere" size="0.005" rgba="0 0 1 1" group="3"/>
-    </default> -->
     <mesh scale="0.1 0.1 0.1"/>
     <geom friction="0.5" solref="0.0002 1" solimp="0.95 0.99 0.01"/>
     <general ctrllimited="true"/>
@@ -311,7 +308,7 @@
   </asset>
 
   <worldbody>
-    <geom name="floor" type="plane" size="5 5 .1" material="grid" pos="0 0 -.15"/>
+    <geom name="floor" type="plane" size="5 5 .1" material="grid" pos="0 0 -.14"/>
     <replicate count="2" euler="0 0 0" sep="-">
     <body name="thorax" childclass="body">
       <freejoint name="free"/>
