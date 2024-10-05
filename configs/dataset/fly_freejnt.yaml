@@ -1,18 +1,19 @@
 name: Flybody
+dname: fly_freejnt
 camera: 1
 rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_pair.xml
 stac_path: ${paths.data_dir}/transform_mocap_fly_freejnt.p
 clip_idx: 0
-clip_length: 250
-ref_traj_length: 5
+clip_length: 601
+ref_traj_length: 15
 env_args:
   mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" # add logic from vnl
   scale_factor: 1 # add logic from vnl
   solver: cg
-  iterations: 4
-  ls_iterations: 4
+  iterations: 6
+  ls_iterations: 6
   torque_actuators: False
-  physics_steps_per_control_step: 5
+  physics_steps_per_control_step: 10
   too_far_dist: 0.1
   bad_pose_dist: 1000.0 # 60.0
   bad_quat_dist: 1000.0 #1.25

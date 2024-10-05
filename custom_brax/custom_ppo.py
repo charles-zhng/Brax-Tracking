@@ -206,7 +206,7 @@ def train(
         v_randomization_fn = functools.partial(randomization_fn, rng=randomization_rng)
 
     if isinstance(environment, envs.Env):
-        wrap_for_training = custom_brax.custom_wrappers.wrap
+        wrap_for_training = envs.training.wrap
     else:
         wrap_for_training = envs_v1.wrappers.wrap_for_training
 
@@ -471,7 +471,7 @@ def train(
             (training_state, env_state, training_metrics) = training_epoch_with_timing(
                 training_state, env_state, epoch_keys
             )
-            current_step = int(_unpmap(training_state.env_steps))
+            current_step = (_unpmap(training_state.env_steps)).astype(jnp.int64)
 
             key_envs = jax.vmap(
                 lambda x, s: jax.random.split(x[0], s), in_axes=(0, None)
