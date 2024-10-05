@@ -68,8 +68,8 @@ def main(cfg: DictConfig) -> None:
         # Process rodent clip and save as pickle
         reference_clip = process_clip_to_train(
             env_cfg["stac_path"],
-            start_step=env_cfg["clip_idx"] * env_cfg["clip_length"],
-            clip_length=env_cfg["clip_length"],
+            start_step=env_cfg["clip_idx"] * env_args["clip_length"],
+            clip_length=env_args["clip_length"],
             mjcf_path=env_args["mjcf_path"],
         )
         with open(reference_path, "wb") as file:
@@ -86,7 +86,7 @@ def main(cfg: DictConfig) -> None:
     # Episode length is equal to (clip length - random init range - traj length) * steps per cur frame
     # Will work on not hardcoding these values later
     episode_length = (
-        env_cfg.clip_length - 50 - env_cfg.ref_traj_length
+        env_args.clip_length - 50 - env_cfg.ref_traj_length
     ) * cfg.dataset.env_args.physics_steps_per_control_step
     print(f"episode_length {episode_length}")
 
