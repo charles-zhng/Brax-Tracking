@@ -13,7 +13,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     
     # Log the metrics for the rollout
     for metric in ['pos_reward','bodypos_reward','joint_reward','angvel_distance','endeff_distance','thorax_height']:
-        metric_values = [state.metric[metric] for state in rollout]
+        metric_values = [state.metrics[metric] for state in rollout]
         table = wandb.Table(
             data=[[x, y] for (x, y) in zip(range(len(metric_values)), metric_values)],
             columns=["frame", metric],
