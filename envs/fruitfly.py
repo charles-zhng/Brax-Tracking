@@ -28,9 +28,10 @@ class Fruitfly_Tethered(PipelineEnv):
         center_of_mass: str,
         end_eff_names: List[str],
         appendage_names: List[str],
-        scale_factor: float,
         body_names: List[str],
         joint_names: List[str],
+        site_names: List[str],
+        scale_factor: float,
         mocap_hz: int = 250,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_free.xml",
         ref_len: int = 5,
@@ -53,6 +54,7 @@ class Fruitfly_Tethered(PipelineEnv):
         ls_iterations: int = 6,
         terminate_when_unhealthy=True,
         free_jnt=True,
+        inference_mode=False,
         **kwargs,
     ):
         spec = mujoco.MjSpec()
@@ -82,17 +84,8 @@ class Fruitfly_Tethered(PipelineEnv):
         )
 
         super().__init__(sys, **kwargs)
-        if max_physics_steps_per_control_step % physics_steps_per_control_step != 0:
-            raise ValueError(
-                f"physics_steps_per_control_step ({physics_steps_per_control_step}) must be a factor of ({max_physics_steps_per_control_step})"
-            )
-
-        self._steps_for_cur_frame = (
-            max_physics_steps_per_control_step / physics_steps_per_control_step
-        )
-
-        print(f"self._steps_for_cur_frame: {self._steps_for_cur_frame}")
-
+        self._dt = 0.002  # this environment is 500 fps
+        
         self._thorax_idx = mujoco.mj_name2id(
             mj_model, mujoco.mju_str2Type("body"), center_of_mass
         )
@@ -110,7 +103,13 @@ class Fruitfly_Tethered(PipelineEnv):
                 for body in body_names
             ]
         )
-
+        
+        self._site_idxs = jp.array(
+            [
+                mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("site"), site)
+                for site in site_names
+            ]
+        )
         # using this for appendage for now bc im to lazy to rename
         self._endeff_idxs = jp.array(
             [
@@ -119,6 +118,7 @@ class Fruitfly_Tethered(PipelineEnv):
             ]
         )
         self._free_jnt = free_jnt
+        self._inference_mode = inference_mode
         self._mocap_hz = mocap_hz
         self._bad_pose_dist = bad_pose_dist
         self._too_far_dist = too_far_dist
@@ -145,7 +145,7 @@ class Fruitfly_Tethered(PipelineEnv):
 
         info = {
             "cur_frame": start_frame,
-            "steps_taken_cur_frame": 0,
+            # "steps_taken_cur_frame": 0,
             "summed_pos_distance": 0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
@@ -191,13 +191,13 @@ class Fruitfly_Tethered(PipelineEnv):
         data = self.pipeline_step(data0, action)
 
         info = state.info.copy()
-        info["steps_taken_cur_frame"] += 1
-        info["cur_frame"] += jp.where(
-            info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 1, 0
-        )
-        info["steps_taken_cur_frame"] *= jp.where(
-            info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 0, 1
-        )
+        # info["steps_taken_cur_frame"] += 1
+        # info["cur_frame"] += jp.where(
+        #     info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 1, 0
+        # )
+        # info["steps_taken_cur_frame"] *= jp.where(
+        #     info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 0, 1
+        # )
 
         # Logic for getting current frame aligned with simulation time
         cur_frame = (info["cur_frame"] + (data.time // (1 / self._mocap_hz))).astype(int)
@@ -220,7 +220,7 @@ class Fruitfly_Tethered(PipelineEnv):
             quat_reward = 0.0
 
         track_joints = self._ref_traj.joints
-        joint_distance = jp.sum((data.qpos - track_joints[cur_frame])** 2) 
+        joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame])** 2) 
         joint_reward = self._joint_reward_weight * jp.exp(-0.5 * joint_distance)
         info["joint_distance"] = joint_distance
 
@@ -271,7 +271,7 @@ class Fruitfly_Tethered(PipelineEnv):
             'joint_reward': rewards_temp[1],
             'quat_reward': rewards_temp[2],
         }
-        reward = jp.sum(rewards.values())
+        # reward = sum(rewards.values())
 
         reward = (
             rewards_temp[0]
@@ -298,9 +298,9 @@ class Fruitfly_Tethered(PipelineEnv):
         done = jp.max(jp.array([nan, done]))
 
         state.metrics.update(
-            pos_reward=pos_reward,
-            quat_reward=quat_reward,
-            joint_reward=joint_reward,
+            pos_reward=rewards_temp[0],
+            quat_reward=rewards_temp[2],
+            joint_reward=rewards_temp[1],
             angvel_reward=angvel_reward,
             bodypos_reward=bodypos_reward,
             endeff_reward=endeff_reward,
@@ -345,14 +345,14 @@ class Fruitfly_Tethered(PipelineEnv):
         #     ref_traj.quaternion,
         # ).flatten()
 
-        joint_dist = (ref_traj.joints - data.qpos)[:, self._joint_idxs].flatten()
+        joint_dist = (ref_traj.joints - data.qpos[self._joint_idxs]).flatten()
 
         # TODO test if this works
         body_pos_dist_local = jax.vmap(
             lambda a, b: jax.vmap(brax_math.rotate, in_axes=(0, None))(a, b),
             in_axes=(0, None),
         )(
-            (ref_traj.body_positions - data.xpos)[:, self._body_idxs],
+            (ref_traj.body_positions[:,self._body_idxs] - data.xpos[self._body_idxs]),
             data.qpos[3:7],
         ).flatten()
 
@@ -405,6 +405,7 @@ class Fruitfly_Tethered(PipelineEnv):
             reference_features=reference_ft,
             weights=(0, 1, 1))
         return reward_factors
+    
     def _compute_diffs(self, walker_features: Dict[str, jp.ndarray],
                     reference_features: Dict[str, jp.ndarray],
                     n: int = 2) -> Dict[str, float]:
@@ -488,7 +489,7 @@ class Fruitfly_Tethered(PipelineEnv):
         and reference data features:
             1. Cartesian center-of-mass position, qpos[:3].
             2. qvel for all joints, including the root joint.
-            3. Egocentric end-effector vectors.
+            3. Egocentric end-effector vectors. Deleted for now.
             4. All joint orientation quaternions (in egocentric local reference
             frame), and the root quaternion.
 
