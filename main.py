@@ -155,7 +155,7 @@ def main(cfg: DictConfig) -> None:
         state = jit_reset(reset_rng)
 
         rollout = [state]
-        for i in range(int(250 * rollout_env._steps_for_cur_frame)):
+        for i in range(env_args["clip_length"]):
             _, act_rng = jax.random.split(act_rng)
             obs = state.obs
             ctrl, extras = jit_inference_fn(obs, act_rng)
