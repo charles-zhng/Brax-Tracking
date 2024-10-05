@@ -4,9 +4,9 @@ camera: 1
 rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_pair.xml
 stac_path: ${paths.data_dir}/transform_tethered.p
 clip_idx: 0
-clip_length: 601
 ref_traj_length: 15
 env_args:
+  clip_length: 601
   mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fastball.xml" 
   scale_factor: 1 
   solver: cg

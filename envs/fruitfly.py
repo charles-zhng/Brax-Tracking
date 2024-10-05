@@ -32,6 +32,7 @@ class Fruitfly_Tethered(PipelineEnv):
         joint_names: List[str],
         site_names: List[str],
         scale_factor: float,
+        clip_length: int,
         mocap_hz: int = 250,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_free.xml",
         ref_len: int = 5,
@@ -144,8 +145,7 @@ class Fruitfly_Tethered(PipelineEnv):
         start_frame = jax.random.randint(rng, (), 0, 44)
 
         info = {
-            "cur_frame": start_frame,
-            # "steps_taken_cur_frame": 0,
+            "start_frame": start_frame,
             "summed_pos_distance": 0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
@@ -191,17 +191,12 @@ class Fruitfly_Tethered(PipelineEnv):
         data = self.pipeline_step(data0, action)
 
         info = state.info.copy()
-        # info["steps_taken_cur_frame"] += 1
-        # info["cur_frame"] += jp.where(
-        #     info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 1, 0
-        # )
-        # info["steps_taken_cur_frame"] *= jp.where(
-        #     info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 0, 1
-        # )
 
         # Logic for getting current frame aligned with simulation time
-        cur_frame = (info["cur_frame"] + (data.time // (1 / self._mocap_hz))).astype(int)
-        # cur_frame = info["cur_frame"]
+        cur_frame = (
+            info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
+        ) % self._clip_len
+
         if self._ref_traj.position is not None:
             track_pos = self._ref_traj.position
             pos_distance = data.qpos[:3] - track_pos[cur_frame]

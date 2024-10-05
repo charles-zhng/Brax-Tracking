@@ -206,7 +206,7 @@ def train(
         v_randomization_fn = functools.partial(randomization_fn, rng=randomization_rng)
 
     if isinstance(environment, envs.Env):
-        wrap_for_training = custom_brax.custom_wrappers.wrap
+        wrap_for_training = envs.training.wrap
     else:
         wrap_for_training = envs_v1.wrappers.wrap_for_training
 
