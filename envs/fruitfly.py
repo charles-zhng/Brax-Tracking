@@ -887,12 +887,6 @@ class Fruitfly_Tethered_Free(PipelineEnv):
 
 from ml_collections import config_dict
 
-
-
-
-
-from ml_collections import config_dict
-
 def get_config():
     """Returns reward config for barkour quadruped environment."""
 
