@@ -89,14 +89,24 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     thorax0 = spec.find_body("thorax-0")
     first_joint0 = thorax0.first_joint()
     if (env._free_jnt == False) & ('free' in first_joint0.name):
-        qposes_ref = ref_traj.joints.copy()
+        qposes_ref = np.repeat(
+            ref_traj.joints,
+            repeats_per_frame,
+            axis=0,
+        )
+        # qposes_ref = ref_traj.joints.copy()
 
         first_joint0.delete()
         thorax1 = spec.find_body("thorax-1")
         first_joint1 = thorax1.first_joint()
         first_joint1.delete()
     elif env._free_jnt == True: 
-        qposes_ref = np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints])
+        # qposes_ref = np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints])
+        qposes_ref = np.repeat(
+            np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),
+            repeats_per_frame,
+            axis=0,
+        )
         
     mj_model = spec.compile()
 
