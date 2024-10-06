@@ -228,16 +228,17 @@ class Fruitfly_Tethered(PipelineEnv):
         track_angvel = self._ref_traj.angular_velocity
         angvel_distance = jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2)
         # angvel_reward = self._angvel_reward_weight * jp.exp(-0.01 * angvel_distance)
-        angvel_reward = self._angvel_reward_weight * jp.exp(-0.125 * angvel_distance)
+        angvel_reward = self._angvel_reward_weight * jp.exp(-0.5/53.7801**2 * angvel_distance)
+        # angvel_reward = self._angvel_reward_weight * jp.exp(-0.125 * angvel_distance)
         info["angvel_distance"]
         
         track_bodypos = self._ref_traj.body_positions
         bodypos_distance = jp.sum((data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]).flatten()** 2)
-        bodypos_reward = self._bodypos_reward_weight * jp.exp(-2.0 * bodypos_distance)
+        bodypos_reward = self._bodypos_reward_weight * jp.exp(-0.1* bodypos_distance)
         info["bodypos_distance"] = bodypos_distance
         
         endeff_distance = jp.sum((data.xpos[self._endeff_idxs] - track_bodypos[cur_frame][self._endeff_idxs]).flatten()** 2)
-        endeff_reward = self._endeff_reward_weight * jp.exp(-3 * endeff_distance)
+        endeff_reward = self._endeff_reward_weight * jp.exp(-0.5 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
         min_z, max_z = self._healthy_z_range
@@ -258,7 +259,7 @@ class Fruitfly_Tethered(PipelineEnv):
         obs = self._get_obs(data, cur_frame)
         rewards_temp = self.get_reward_factors(data)
         pos_reward = rewards_temp[0]
-        joint_reward = rewards_temp[1]
+        # joint_reward = rewards_temp[1]
         quat_reward = rewards_temp[2]
         # rewards = {
         #     'pos_reward': rewards_temp[0],
@@ -1117,16 +1118,17 @@ class Fruitfly_Run(PipelineEnv):
         track_angvel = self._ref_traj.angular_velocity
         angvel_distance = jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2)
         # angvel_reward = self._angvel_reward_weight * jp.exp(-0.01 * angvel_distance)
-        angvel_reward = self._angvel_reward_weight * jp.exp(-0.125 * angvel_distance)
+        angvel_reward = self._angvel_reward_weight * jp.exp(-0.5/53.7801**2 * angvel_distance)
+        # angvel_reward = self._angvel_reward_weight * jp.exp(-0.125 * angvel_distance)
         info["angvel_distance"]
         
         track_bodypos = self._ref_traj.body_positions
         bodypos_distance = jp.sum((data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]).flatten()** 2)
-        bodypos_reward = self._bodypos_reward_weight * jp.exp(-2.0 * bodypos_distance)
+        bodypos_reward = self._bodypos_reward_weight * jp.exp(-0.1* bodypos_distance)
         info["bodypos_distance"] = bodypos_distance
         
         endeff_distance = jp.sum((data.xpos[self._endeff_idxs] - track_bodypos[cur_frame][self._endeff_idxs]).flatten()** 2)
-        endeff_reward = self._endeff_reward_weight * jp.exp(-3 * endeff_distance)
+        endeff_reward = self._endeff_reward_weight * jp.exp(-0.5 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
         # observation data
