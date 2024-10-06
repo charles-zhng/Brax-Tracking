@@ -255,7 +255,10 @@ class Fruitfly_Tethered(PipelineEnv):
         ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
 
         obs = self._get_obs(data, cur_frame)
-        # rewards_temp = self.get_reward_factors(data)
+        rewards_temp = self.get_reward_factors(data)
+        pos_reward = rewards_temp[0]
+        joint_reward = rewards_temp[1]
+        quat_reward = rewards_temp[2]
         # rewards = {
         #     'pos_reward': rewards_temp[0],
         #     'joint_reward': rewards_temp[1],
