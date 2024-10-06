@@ -21,6 +21,8 @@ from omegaconf import DictConfig, OmegaConf
 from brax.training.agents.ppo import networks as ppo_networks
 from custom_brax import custom_ppo as ppo
 from custom_brax import custom_wrappers
+from orbax import checkpoint as ocp
+from flax.training import orbax_utils
 # from envs.rodent import RodentSingleClip
 from preprocessing.preprocess import process_clip_to_train
 from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Tethered_Free, Fruitfly_Run
@@ -173,9 +175,12 @@ def main(cfg: DictConfig) -> None:
         jit_step = jax.jit(rollout_env.step)
 
         def policy_params_fn(num_steps, make_policy, params, model_path=model_path):
-            policy_params_key = jax.random.key(0)
-            os.makedirs(model_path, exist_ok=True)
-            model.save_params(f"{model_path}/{num_steps}", params)
+            orbax_checkpointer = ocp.PyTreeCheckpointer()
+            save_args = orbax_utils.save_args_from_target(params)
+            path = model_path / f'{num_steps}'
+            os.makedirs(path, exist_ok=True)
+            orbax_checkpointer.save(path, params, force=True, save_args=save_args)
+            policy_params_key = jax.random.key(0)    
             jit_inference_fn = jax.jit(make_policy(params, deterministic=True))
             _, policy_params_key = jax.random.split(policy_params_key)
             reset_rng, act_rng = jax.random.split(policy_params_key)

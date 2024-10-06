@@ -125,19 +125,19 @@ def log_eval_rollout_run(cfg, rollout, state, env, reference_clip, model_path, n
     # save rendering and log to wandb
     os.environ["MUJOCO_GL"] = "osmesa"
     mujoco.mj_kinematics(mj_model, mj_data)
-    renderer = mujoco.Renderer(mj_model, height=512, width=512)
+    # renderer = mujoco.Renderer(mj_model, height=512, width=512)
 
     frames = []
     # render while stepping using mujoco
     video_path = f"{model_path}/{num_steps}.mp4"
-
-    with imageio.get_writer(video_path, fps=int((1.0 / env.dt))) as video:
-        for qpos1 in qposes_rollout:
-            mj_data.qpos = qpos1
-            mujoco.mj_forward(mj_model, mj_data)
-            renderer.update_scene(mj_data, camera=1, scene_option=scene_option)
-            pixels = renderer.render()
-            video.append_data(pixels)
-            frames.append(pixels)
+    with mujoco.Renderer(mj_model, height=512, width=512) as renderer:
+        with imageio.get_writer(video_path, fps=int((1.0 / env.dt))) as video:
+            for qpos1 in qposes_rollout:
+                mj_data.qpos = qpos1
+                mujoco.mj_forward(mj_model, mj_data)
+                renderer.update_scene(mj_data, camera=1, scene_option=scene_option)
+                pixels = renderer.render()
+                video.append_data(pixels)
+                frames.append(pixels)
 
     wandb.log({"eval/rollout": wandb.Video(video_path, format="mp4")})
