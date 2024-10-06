@@ -1183,8 +1183,6 @@ class Fruitfly_Run(PipelineEnv):
         # state management
         state.info["last_act"] = action
         state.info["last_vel"] = joint_vel
-        # state.info["last_contact"] = contact
-        state.info["rewards"] = rewards
         state.info["step"] += 1
         state.info["rng"] = rng
 
