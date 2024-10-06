@@ -6,9 +6,9 @@ env_name: fly_run
 algo_name: ppo
 task_name: track
 note: 
-num_envs: 2048
+num_envs: 1024
 num_timesteps: 3_000_000_000
-eval_every: 50_000_000
+eval_every: 100_000_000
 episode_length: 250
 batch_size: ${train.num_envs}
 learning_rate: 3e-4
