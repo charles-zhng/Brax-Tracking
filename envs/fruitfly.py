@@ -257,17 +257,20 @@ class Fruitfly_Tethered(PipelineEnv):
 
         obs = self._get_obs(data, cur_frame)
         rewards_temp = self.get_reward_factors(data)
-        rewards = {
-            'pos_reward': rewards_temp[0],
-            'joint_reward': rewards_temp[1],
-            'quat_reward': rewards_temp[2],
-        }
+        pos_reward = rewards_temp[0]
+        joint_reward = rewards_temp[1]
+        quat_reward = rewards_temp[2]
+        # rewards = {
+        #     'pos_reward': rewards_temp[0],
+        #     'joint_reward': rewards_temp[1],
+        #     'quat_reward': rewards_temp[2],
+        # }
         # reward = sum(rewards.values())
 
         reward = (
-            rewards_temp[0]
-            + rewards_temp[1]
-            + rewards_temp[2]
+            pos_reward
+            + joint_reward
+            + quat_reward
             + angvel_reward
             + bodypos_reward
             + endeff_reward
@@ -289,9 +292,9 @@ class Fruitfly_Tethered(PipelineEnv):
         done = jp.max(jp.array([nan, done]))
 
         state.metrics.update(
-            pos_reward=rewards_temp[0],
-            quat_reward=rewards_temp[2],
-            joint_reward=rewards_temp[1],
+            pos_reward=pos_reward,
+            quat_reward=quat_reward,
+            joint_reward=joint_reward,
             angvel_reward=angvel_reward,
             bodypos_reward=bodypos_reward,
             endeff_reward=endeff_reward,

@@ -118,9 +118,9 @@ env_args:
     - tibia_T1_left
     - tarsus_T1_left
     - coxa_flexion_T1_right
-    - oxa_twist_T1_right
-    - emur_T1_right
-    - emur_twist_T1_right
+    - coxa_twist_T1_right
+    - femur_T1_right
+    - femur_twist_T1_right
     - tibia_T1_right
     - tarsus_T1_right
     - coxa_flexion_T2_left
@@ -130,11 +130,11 @@ env_args:
     - tibia_T2_left
     - tarsus_T2_left
     - coxa_flexion_T2_right
-    - oxa_twist_T2_right
-    - emur_T2_right
-    - emur_twist_T2_right
+    - coxa_twist_T2_right
+    - femur_T2_right
+    - femur_twist_T2_right
     - tibia_T2_right
-    - tarsus_T2_righ
+    - tarsus_T2_right
     - coxa_flexion_T3_left
     - coxa_twist_T3_left
     - femur_T3_left
@@ -142,9 +142,9 @@ env_args:
     - tibia_T3_left
     - tarsus_T3_left
     - coxa_flexion_T3_right
-    - oxa_twist_T3_right
-    - emur_T3_right
-    - emur_twist_T3_right
+    - coxa_twist_T3_right
+    - femur_T3_right
+    - femur_twist_T3_right
     - tibia_T3_right
-    - tarsus_T3_rig
+    - tarsus_T3_right
   center_of_mass: thorax
