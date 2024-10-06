@@ -227,7 +227,8 @@ class Fruitfly_Tethered(PipelineEnv):
 
         track_angvel = self._ref_traj.angular_velocity
         angvel_distance = jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2)
-        angvel_reward = self._angvel_reward_weight * jp.exp(-0.01 * angvel_distance)
+        # angvel_reward = self._angvel_reward_weight * jp.exp(-0.01 * angvel_distance)
+        angvel_reward = self._angvel_reward_weight * jp.exp(-0.125 * angvel_distance)
         info["angvel_distance"]
         
         track_bodypos = self._ref_traj.body_positions

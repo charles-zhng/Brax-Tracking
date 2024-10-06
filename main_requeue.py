@@ -116,7 +116,7 @@ def main(cfg: DictConfig) -> None:
         # Will work on not hardcoding these values later
         episode_length = (
             env_args.clip_length - 50 - env_cfg.ref_traj_length
-        )
+        ) * env_args.physics_steps_per_control_step
         print(f"episode_length {episode_length}")
 
         train_fn = functools.partial(
