@@ -24,7 +24,7 @@ import utils.io_dict_to_hdf5 as ioh5
 class ReferenceClip:
     """This dataclass is used to store the trajectory in the env."""
 
-    # qpos
+    # root values
     position: jp.ndarray = None
     quaternion: jp.ndarray = None
     joints: jp.ndarray = None
@@ -39,6 +39,8 @@ class ReferenceClip:
 
     # xquat
     body_quaternions: jp.ndarray = None
+    
+    joint_names: List[str] = None
 
 
 def process_clip_to_train(
@@ -93,13 +95,14 @@ def process_clip_to_train(
     mjx_model = mjx.put_model(mj_model)
     mjx_data = mjx.put_data(mj_model, mj_data)
 
-    return process_clip(mocap_qpos, mjx_model, mjx_data, max_qvel=max_qvel, dt=dt)
+    return process_clip(mocap_qpos, mjx_model, mjx_data, mj_model, max_qvel=max_qvel, dt=dt)
 
 
 def process_clip(
     mocap_qpos,
     mjx_model,
     mjx_data,
+    mj_model,
     max_qvel: float = 20.0,
     dt: float = 0.02,
 ):
@@ -132,10 +135,12 @@ def process_clip(
     clipped_vels = jp.clip(vels, -max_qvel, max_qvel)
         
     mocap_qvel = mocap_qvel.at[:, 6:].set(clipped_vels)
+    joint_names = [mj_model.joint(i).name for i in range(mj_model.njnt)]
     clip = clip.replace(
         velocity=mocap_qvel[:, :3],
         angular_velocity=mocap_qvel[:, 3:6],
         joints_velocity=mocap_qvel[:, 6:],
+        joint_names=joint_names,
     )
 
     return clip

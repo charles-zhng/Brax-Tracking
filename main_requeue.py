@@ -25,7 +25,7 @@ from orbax import checkpoint as ocp
 from flax.training import orbax_utils
 # from envs.rodent import RodentSingleClip
 from preprocessing.preprocess import process_clip_to_train
-from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Tethered_Free, Fruitfly_Run
+from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run
 from utils.utils import *
 from utils.fly_logging import log_eval_rollout
 from utils.fly_logging_run import log_eval_rollout_run
@@ -42,7 +42,6 @@ os.environ["XLA_FLAGS"] = (
 )
 
 envs.register_environment("fly_single_clip", Fruitfly_Tethered)
-envs.register_environment("fly_single_clip_freejnt", Fruitfly_Tethered_Free)
 envs.register_environment("fly_run", Fruitfly_Run)
 
 # Global Boolean variable that indicates that a signal has been received

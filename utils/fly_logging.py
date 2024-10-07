@@ -73,17 +73,19 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     qposes_rollout = np.array([state.pipeline_state.qpos for state in rollout])
 
     def f(x):
-        if len(x.shape) != 1:
-            return jax.lax.dynamic_slice_in_dim(
-                x,
-                0,
-                cfg.dataset.env_args["clip_length"],
-            )
+        if (not isinstance(x,str)):
+            if (len(x.shape) != 1):
+                return jax.lax.dynamic_slice_in_dim(
+                    x,
+                    0,
+                    cfg.dataset.env_args["clip_length"],
+                )
         return jp.array([])
+
 
     ref_traj = jax.tree_util.tree_map(f, reference_clip)
     
-    repeats_per_frame = int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
+    repeats_per_frame = 1 #int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
     spec = mujoco.MjSpec()
     spec.from_file(cfg.dataset.rendering_mjcf)
     thorax0 = spec.find_body("thorax-0")

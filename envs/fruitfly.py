@@ -203,34 +203,33 @@ class Fruitfly_Tethered(PipelineEnv):
             info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
         ) % self._clip_len
 
-        if self._ref_traj.position is not None:
-            track_pos = self._ref_traj.position
-            pos_distance = data.qpos[:3] - track_pos[cur_frame]
-            pos_reward = self._pos_reward_weight * jp.exp(
-                -400 * jp.sum(pos_distance**2)
-            )
-            track_quat = self._ref_traj.quaternion
-            quat_distance = jp.sum(
-                self._bounded_quat_dist(data.qpos[3:7], track_quat[cur_frame]) ** 2
-            )
-            quat_reward = self._quat_reward_weight * jp.exp(-4.0 * quat_distance)
-        else:
-            pos_distance = 0.0
-            quat_distance = 0.0
-            pos_reward = 0.0
-            quat_reward = 0.0
-
+        # if self._ref_traj.position is not None:
+        #     track_pos = self._ref_traj.position
+        #     pos_distance = data.qpos[:3] - track_pos[cur_frame]
+        #     pos_reward = self._pos_reward_weight * jp.exp(
+        #         -400 * jp.sum(pos_distance**2)
+        #     )
+        #     track_quat = self._ref_traj.quaternion
+        #     quat_distance = jp.sum(
+        #         self._bounded_quat_dist(data.qpos[3:7], track_quat[cur_frame]) ** 2
+        #     )
+        #     quat_reward = self._quat_reward_weight * jp.exp(-4.0 * quat_distance)
+        # else:
+        
+        pos_distance = 0.0
+        pos_reward = 0.0
+            
         track_joints = self._ref_traj.joints
-        joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame])** 2) 
+        joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame,self._joint_idxs])** 2) 
         # joint_reward = self._joint_reward_weight * jp.exp(-0.1 * joint_distance)
         joint_reward = self._joint_reward_weight* jp.exp(-0.5/.8**2  * joint_distance)
         info["joint_distance"] = joint_distance
 
-        track_angvel = self._ref_traj.angular_velocity
-        angvel_distance = jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2)
-        # angvel_reward = self._angvel_reward_weight * jp.exp(-0.01 * angvel_distance)
+        track_angvel = self._ref_traj.joints_velocity
+        angvel_distance = jp.sum((data.qvel[self._joint_idxs] - track_angvel[cur_frame,self._joint_idxs])** 2)
+        angvel_reward = self._angvel_reward_weight * jp.exp(-0.005 * angvel_distance)
         # angvel_reward = self._angvel_reward_weight * jp.exp(-0.5/53.7801**2 * angvel_distance)
-        angvel_reward = self._angvel_reward_weight* jp.exp(-20 * angvel_distance)
+        # angvel_reward = self._angvel_reward_weight* jp.exp(-20 * angvel_distance)
         info["angvel_distance"]
         
         track_bodypos = self._ref_traj.body_positions
@@ -239,11 +238,15 @@ class Fruitfly_Tethered(PipelineEnv):
         bodypos_reward = self._bodypos_reward_weight* jp.exp(-50 * bodypos_distance)
         info["bodypos_distance"] = bodypos_distance
         
-        endeff_distance = jp.sum((data.xpos[self._endeff_idxs] - track_bodypos[cur_frame][self._endeff_idxs]).flatten()** 2)
-        # endeff_reward = self._endeff_reward_weight * jp.exp(-0.5 * endeff_distance)
-        endeff_reward = self._endeff_reward_weight* jp.exp(-700 * endeff_distance)
+        ##### z component of end effector position #####
+        endeff_distance = jp.sum((data.xpos[self._endeff_idxs,2] - track_bodypos[cur_frame][self._endeff_idxs,2]).flatten()** 2)
+        endeff_reward = self._endeff_reward_weight* jp.exp(-30 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
+        track_quat = self._ref_traj.body_quaternions
+        quat_distance = jp.sum(self._bounded_quat_dist(data.xquat[self._body_idxs], track_quat[cur_frame,self._body_idxs]) ** 2)
+        quat_reward =  self._quat_reward_weight * jp.exp(-0.05 * quat_distance)
+        
         min_z, max_z = self._healthy_z_range
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] > max_z, 0.0, is_healthy)
@@ -260,10 +263,11 @@ class Fruitfly_Tethered(PipelineEnv):
         ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
 
         obs = self._get_obs(data, cur_frame)
-        rewards_temp = self.get_reward_factors(data)
-        pos_reward = rewards_temp[0]
+        
+        # rewards_temp = self.get_reward_factors(data)
+        # pos_reward = rewards_temp[0]
         # joint_reward = rewards_temp[1]
-        quat_reward = rewards_temp[2]
+        # quat_reward = rewards_temp[2]
         # rewards = {
         #     'pos_reward': rewards_temp[0],
         #     'joint_reward': rewards_temp[1],
@@ -319,12 +323,13 @@ class Fruitfly_Tethered(PipelineEnv):
 
         # Get the relevant slice of the ref_traj
         def f(x):
-            if len(x.shape) != 1:
-                return jax.lax.dynamic_slice_in_dim(
-                    x,
-                    cur_frame + 1,
-                    self._ref_len,
-                )
+            if (not isinstance(x,str)):
+                if (len(x.shape) != 1):
+                    return jax.lax.dynamic_slice_in_dim(
+                        x,
+                        cur_frame + 1,
+                        self._ref_len,
+                    )
             return jp.array([])
 
         ref_traj = jax.tree_util.tree_map(f, self._ref_traj)
@@ -336,14 +341,14 @@ class Fruitfly_Tethered(PipelineEnv):
         #     data.qpos[3:7],
         # ).flatten()
 
-        # quat_dist = jax.vmap(
-        #     lambda a, b: brax_math.relative_quat(a, b), in_axes=(None, 0)
-        # )(
-        #     data.qpos[3:7],
-        #     ref_traj.quaternion,
-        # ).flatten()
+        quat_dist = jax.vmap(
+            lambda a, b: brax_math.relative_quat(a, b), in_axes=(None, 0)
+        )(
+            data.xquat[self._body_idxs],
+            ref_traj.body_quaternions[:, self._body_idxs],
+        ).flatten()
 
-        joint_dist = (ref_traj.joints - data.qpos[self._joint_idxs]).flatten()
+        joint_dist = (ref_traj.joints[:,self._joint_idxs] - data.qpos[self._joint_idxs]).flatten()
 
         # TODO test if this works
         body_pos_dist_local = jax.vmap(
@@ -362,7 +367,7 @@ class Fruitfly_Tethered(PipelineEnv):
                 # data.cvel[1:].ravel(),
                 # data.qfrc_actuator,
                 # track_pos_local,
-                # quat_dist,
+                quat_dist,
                 joint_dist,
                 body_pos_dist_local,
             ]
@@ -511,382 +516,24 @@ class Fruitfly_Tethered(PipelineEnv):
         reward_factors *= jp.asarray(weights)
 
         return reward_factors
-
-
-class Fruitfly_Tethered_Free(PipelineEnv):
-
-    def __init__(
+    
+    def render(
         self,
-        reference_clip,
-        center_of_mass: str,
-        end_eff_names: List[str],
-        appendage_names: List[str],
-        body_names: List[str],
-        joint_names: List[str],
-        mocap_hz: int = 250,
-        mjcf_path: str = "./assets/fruitfly/fruitfly_force_fast.xml",
-        scale_factor: float = 0.9,
-        torque_actuators: bool = False,
-        ref_len: int = 5,
-        too_far_dist=0.1,
-        bad_pose_dist=jp.inf,
-        bad_quat_dist=jp.inf,
-        ctrl_cost_weight=0.01,
-        pos_reward_weight=0.0,
-        quat_reward_weight=1.0,
-        joint_reward_weight=10.0,
-        angvel_reward_weight=1.0,
-        bodypos_reward_weight=1.0,
-        endeff_reward_weight=1.0,
-        healthy_reward=0.25,
-        healthy_z_range=(0.03, 0.5),
-        physics_steps_per_control_step=10,
-        reset_noise_scale=1e-3,
-        solver="cg",
-        iterations: int = 6,
-        ls_iterations: int = 6,
-        terminate_when_unhealthy=True,
-        free_jnt=True,
-        **kwargs,
-    ):
-        # root = mujoco.MjModel.from_xml_path(mjcf_path)
-        spec = mujoco.MjSpec()
-        spec.from_file(mjcf_path)
-        thorax = spec.find_body("thorax")
-        first_joint = thorax.first_joint()
-        if (free_jnt == False) & (first_joint.name == "free"):
-            first_joint.delete()
-        root = spec.compile()
-
-        # Convert to torque actuators
-        if torque_actuators:
-            for actuator in root.find_all("actuator"):
-                actuator.gainprm = [actuator.forcerange[1]]
-                del actuator.biastype
-                del actuator.biasprm
-
-        mj_model = root
-        mj_model.opt.solver = {
-            "cg": mujoco.mjtSolver.mjSOL_CG,
-            "newton": mujoco.mjtSolver.mjSOL_NEWTON,
-        }[solver.lower()]
-        mj_model.opt.iterations = iterations
-        mj_model.opt.ls_iterations = ls_iterations
-        mj_model.opt.timestep = 2e-4
-        mj_model.opt.jacobian = 0
-
-        sys = mjcf_brax.load_model(mj_model)
-
-        kwargs["n_frames"] = kwargs.get("n_frames", physics_steps_per_control_step)
-        kwargs["backend"] = "mjx"
-
-        max_physics_steps_per_control_step = int(
-            (1.0 / (mocap_hz * mj_model.opt.timestep))
+        trajectory: List[base.State],
+        camera: str | None = None,
+        width: int = 480,
+        height: int = 320,
+        scene_option: Any = None,
+    ) -> Sequence[np.ndarray]:
+        camera = camera or "track"
+        return super().render(
+            trajectory,
+            camera=camera,
+            width=width,
+            height=height,
+            scene_option=scene_option,
         )
 
-        super().__init__(sys, **kwargs)
-        if max_physics_steps_per_control_step % physics_steps_per_control_step != 0:
-            raise ValueError(
-                f"physics_steps_per_control_step ({physics_steps_per_control_step}) must be a factor of ({max_physics_steps_per_control_step})"
-            )
-
-        self._steps_for_cur_frame = (
-            max_physics_steps_per_control_step / physics_steps_per_control_step
-        )
-
-        print(f"self._steps_for_cur_frame: {self._steps_for_cur_frame}")
-
-        self._thorax_idx = mujoco.mj_name2id(
-            mj_model, mujoco.mju_str2Type("body"), center_of_mass
-        )
-
-        self._joint_idxs = jp.array(
-            [
-                mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("joint"), joint)
-                for joint in joint_names
-            ]
-        )
-
-        self._body_idxs = jp.array(
-            [
-                mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("body"), body)
-                for body in body_names
-            ]
-        )
-
-        # using this for appendage for now bc im to lazy to rename
-        self._endeff_idxs = jp.array(
-            [
-                mujoco.mj_name2id(mj_model, mujoco.mju_str2Type("body"), body)
-                for body in end_eff_names
-            ]
-        )
-
-        self._free_jnt = free_jnt
-        self._mocap_hz = mocap_hz
-        self._bad_pose_dist = bad_pose_dist
-        self._too_far_dist = too_far_dist
-        self._bad_quat_dist = bad_quat_dist
-        self._ref_traj = reference_clip
-        self._ref_len = ref_len
-        self._pos_reward_weight = pos_reward_weight
-        self._quat_reward_weight = quat_reward_weight
-        self._joint_reward_weight = joint_reward_weight
-        self._angvel_reward_weight = angvel_reward_weight
-        self._bodypos_reward_weight = bodypos_reward_weight
-        self._endeff_reward_weight = endeff_reward_weight
-        self._ctrl_cost_weight = ctrl_cost_weight
-        self._healthy_reward = healthy_reward
-        self._healthy_z_range = healthy_z_range
-        self._reset_noise_scale = reset_noise_scale
-        self._terminate_when_unhealthy = terminate_when_unhealthy
-
-    def reset(self, rng) -> State:
-        """Resets the environment to an initial state."""
-        rng, rng1, rng2, rng_pos = jax.random.split(rng, 4)
-
-        start_frame = jax.random.randint(rng, (), 0, 44)
-
-        info = {
-            "cur_frame": start_frame,
-            "steps_taken_cur_frame": 0,
-            "summed_pos_distance": 0.0,
-            "quat_distance": 0.0,
-            "joint_distance": 0.0,
-        }
-
-        low, hi = -self._reset_noise_scale, self._reset_noise_scale
-
-        # Add pos (without z height)
-        new_qpos = jp.array(self.sys.qpos0)
-
-        # Add quat
-        # new_qpos = qpos_with_pos.at[3:7].set(self._track_quat[start_frame])
-
-        # Add noise
-        qpos = new_qpos + jax.random.uniform(
-            rng1, (self.sys.nq,), minval=low, maxval=hi
-        )
-        qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
-
-        data = self.pipeline_init(qpos, qvel)
-
-        obs = self._get_obs(data, start_frame)
-        reward, done, zero = jp.zeros(3)
-        metrics = {
-            "pos_reward": zero,
-            "quat_reward": zero,
-            "joint_reward": zero,
-            "angvel_reward": zero,
-            "bodypos_reward": zero,
-            "endeff_reward": zero,
-            "reward_quadctrl": zero,
-            "reward_alive": zero,
-            "too_far": zero,
-            "bad_pose": zero,
-            "bad_quat": zero,
-            "fall": zero,
-        }
-        return State(data, obs, reward, done, metrics, info)
-
-    def step(self, state: State, action: jp.ndarray) -> State:
-        """Runs one timestep of the environment's dynamics."""
-        data0 = state.pipeline_state
-        data = self.pipeline_step(data0, action)
-
-        info = state.info.copy()
-        info["steps_taken_cur_frame"] += 1
-        info["cur_frame"] += jp.where(
-            info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 1, 0
-        )
-        info["steps_taken_cur_frame"] *= jp.where(
-            info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 0, 1
-        )
-
-        # Logic for getting current frame aligned with simulation time
-        # cur_frame = (info["cur_frame"] + (data.time // (1 / self._mocap_hz))).astype(int)
-        cur_frame = info["cur_frame"]
-        if self._ref_traj.position is not None:
-            track_pos = self._ref_traj.position
-            pos_distance = data.qpos[:3] - track_pos[cur_frame]
-            pos_reward = self._pos_reward_weight * jp.exp(
-                -400 * jp.sum(pos_distance ** 2)
-            )
-            track_quat = self._ref_traj.quaternion
-            quat_distance = jp.sum(
-                self._bounded_quat_dist(data.qpos[3:7], track_quat[cur_frame]) ** 2
-            )
-            quat_reward = self._quat_reward_weight * jp.exp(-4.0 * quat_distance)
-        else:
-            pos_distance = jp.zeros(3)
-            quat_distance = 0.0
-            pos_reward = 0.0
-            quat_reward = 0.0
-
-        track_joints = self._ref_traj.joints
-        joint_distance = jp.sum((data.qpos[7:] - track_joints[cur_frame])** 2) 
-        joint_reward = self._joint_reward_weight * jp.exp(-0.5 * joint_distance)
-        info["joint_distance"] = joint_distance
-
-        track_angvel = self._ref_traj.angular_velocity
-        angvel_reward = self._angvel_reward_weight * jp.exp(
-            -0.5 * jp.sum(data.qvel[3:6] - track_angvel[cur_frame]) ** 2
-        )
-        track_bodypos = self._ref_traj.body_positions
-        bodypos_reward = self._bodypos_reward_weight * jp.exp(
-            -6.0
-            * jp.sum(
-                (
-                    data.xpos[self._body_idxs]
-                    - track_bodypos[cur_frame][self._body_idxs]
-                ).flatten() ** 2
-            )
-        )
-
-        endeff_reward = self._endeff_reward_weight * jp.exp(
-            -0.75
-            * jp.sum(
-                (
-                    data.xpos[self._endeff_idxs]
-                    - track_bodypos[cur_frame][self._endeff_idxs]
-                ).flatten()** 2
-            )
-        )
-
-        min_z, max_z = self._healthy_z_range
-        is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
-        is_healthy = jp.where(data.xpos[self._thorax_idx][2] > max_z, 0.0, is_healthy)
-        if self._terminate_when_unhealthy:
-            healthy_reward = self._healthy_reward
-        else:
-            healthy_reward = self._healthy_reward * is_healthy
-        summed_pos_distance = jp.sum((pos_distance * jp.array([1.0, 1.0, 0.2])) ** 2)
-        too_far = jp.where(summed_pos_distance > self._too_far_dist, 1.0, 0.0)
-        info["summed_pos_distance"] = summed_pos_distance
-        info["quat_distance"] = quat_distance
-        bad_pose = jp.where(joint_distance > self._bad_pose_dist, 1.0, 0.0)
-        bad_quat = jp.where(quat_distance > self._bad_quat_dist, 1.0, 0.0)
-        ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
-
-        obs = self._get_obs(data, cur_frame)
-        reward = (
-            joint_reward
-            + pos_reward
-            + quat_reward
-            + angvel_reward
-            + bodypos_reward
-            + endeff_reward
-            + healthy_reward
-            - ctrl_cost
-        )
-        done = 1.0 - is_healthy if self._terminate_when_unhealthy else 0.0
-        done = jp.max(jp.array([done, too_far, bad_pose, bad_quat]))
-
-        # Handle nans during sim by resetting env
-        reward = jp.nan_to_num(reward)
-        obs = jp.nan_to_num(obs)
-
-        from jax.flatten_util import ravel_pytree
-
-        flattened_vals, _ = ravel_pytree(data)
-        num_nans = jp.sum(jp.isnan(flattened_vals))
-        nan = jp.where(num_nans > 0, 1.0, 0.0)
-        done = jp.max(jp.array([nan, done]))
-
-        state.metrics.update(
-            pos_reward=pos_reward,
-            quat_reward=quat_reward,
-            joint_reward=joint_reward,
-            angvel_reward=angvel_reward,
-            bodypos_reward=bodypos_reward,
-            endeff_reward=endeff_reward,
-            reward_quadctrl=-ctrl_cost,
-            reward_alive=healthy_reward,
-            too_far=too_far,
-            bad_pose=bad_pose,
-            bad_quat=bad_quat,
-            fall=1 - is_healthy,
-        )
-
-        return state.replace(
-            pipeline_state=data, obs=obs, reward=reward, done=done, info=info
-        )
-
-    def _get_obs(self, data: mjx.Data, cur_frame: int) -> jp.ndarray:
-        """Observes rodent body position, velocities, and angles."""
-
-        # Get the relevant slice of the ref_traj
-        def f(x):
-            if len(x.shape) != 1:
-                return jax.lax.dynamic_slice_in_dim(
-                    x,
-                    cur_frame + 1,
-                    self._ref_len,
-                )
-            return jp.array([])
-
-        ref_traj = jax.tree_util.tree_map(f, self._ref_traj)
-
-        track_pos_local = jax.vmap(
-            lambda a, b: brax_math.rotate(a, b), in_axes=(0, None)
-        )(
-            ref_traj.position - data.qpos[:3],
-            data.qpos[3:7],
-        ).flatten()
-
-        quat_dist = jax.vmap(
-            lambda a, b: brax_math.relative_quat(a, b), in_axes=(None, 0)
-        )(
-            data.qpos[3:7],
-            ref_traj.quaternion,
-        ).flatten()
-
-        joint_dist = (ref_traj.joints - data.qpos[7:])[:, self._joint_idxs].flatten()
-
-        # TODO test if this works
-        body_pos_dist_local = jax.vmap(
-            lambda a, b: jax.vmap(brax_math.rotate, in_axes=(0, None))(a, b),
-            in_axes=(0, None),
-        )(
-            (ref_traj.body_positions - data.xpos)[:, self._body_idxs],
-            data.qpos[3:7],
-        ).flatten()
-
-        return jp.concatenate(
-            [
-                data.qpos,
-                data.qvel,
-                # data.cinert[1:].ravel(),
-                # data.cvel[1:].ravel(),
-                # data.qfrc_actuator,
-                track_pos_local,
-                quat_dist,
-                joint_dist,
-                body_pos_dist_local,
-            ]
-        )
-
-    def _bounded_quat_dist(self, source: np.ndarray, target: np.ndarray) -> np.ndarray:
-        """Computes a quaternion distance limiting the difference to a max of pi/2.
-
-        This function supports an arbitrary number of batch dimensions, B.
-
-        Args:
-          source: a quaternion, shape (B, 4).
-          target: another quaternion, shape (B, 4).
-
-        Returns:
-          Quaternion distance, shape (B, 1).
-        """
-        source /= jp.linalg.norm(source, axis=-1, keepdims=True)
-        target /= jp.linalg.norm(target, axis=-1, keepdims=True)
-        # "Distance" in interval [-1, 1].
-        dist = 2 * jp.einsum("...i,...i", source, target) ** 2 - 1
-        # Clip at 1 to avoid occasional machine epsilon leak beyond 1.
-        dist = jp.minimum(1.0, dist)
-        # Divide by 2 and add an axis to ensure consistency with expected return
-        # shape and magnitude.
-        return 0.5 * jp.arccos(dist)[..., np.newaxis]
 
 class Fruitfly_Run(PipelineEnv):
     """Environment for training the barkour quadruped joystick policy in MJX."""
@@ -1137,6 +784,10 @@ class Fruitfly_Run(PipelineEnv):
         # endeff_reward = self._endeff_reward_weight * jp.exp(-0.5 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
+        track_quat = self._ref_traj.body_quaternions
+        quat_distance = jp.sum(self._bounded_quat_dist(data.xquat[self._body_idxs], track_quat[cur_frame,self._body_idxs]) ** 2)
+        quat_reward =  self._quat_reward_weight * jp.exp(-0.05 * quat_distance)
+        
         # observation data
         x, xd = data.x, data.xd
         obs = self._get_obs(data, state.info, state.obs)
@@ -1151,12 +802,13 @@ class Fruitfly_Run(PipelineEnv):
         done |= data.xpos[self._thorax_idx][2] < min_z
         done |= data.xpos[self._thorax_idx][2] > max_z
         done |= joint_distance > self._bad_pose_dist
+        done |= joint_distance > self._bad_quat_dist
         
         # reward
-        rewards_temp = self.get_reward_factors(data)
-        pos_reward = rewards_temp[0]
-        joint_reward = rewards_temp[1]
-        quat_reward = rewards_temp[2]
+        # rewards_temp = self.get_reward_factors(data)
+        pos_reward = 0.0 #rewards_temp[0]
+        # joint_reward = rewards_temp[1]
+        # quat_reward = rewards_temp[2]
         tracking_lin_vel = self._tracking_lin_vel_weight*self._reward_tracking_lin_vel(state.info["command"], x, xd)
         ang_vel_xy = self._lin_vel_z_weight * self._reward_ang_vel_xy(xd)
         lin_vel_z = self._ang_vel_xy_weight * self._reward_lin_vel_z(xd)
