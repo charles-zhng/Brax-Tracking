@@ -414,9 +414,9 @@ def train(
     ):
         logging.info("restoring from checkpoint %s", restore_checkpoint_path)
         orbax_checkpointer = ocp.PyTreeCheckpointer()
-        target = training_state.normalizer_params, init_params.policy
+        target = training_state.normalizer_params, init_params
         (normalizer_params, init_params) = orbax_checkpointer.restore(
-            restore_checkpoint_path, item=target
+            restore_checkpoint_path, item=None
         )
         training_state = training_state.replace(
             normalizer_params=normalizer_params, params=init_params
