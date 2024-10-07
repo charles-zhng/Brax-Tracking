@@ -60,6 +60,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
+    assert n_gpus == cfg.num_gpus, 'Number of GPUs missmatched'
     print('run_id:', cfg.run_id)
     # Create paths if they don't exist and Path objects
     for k in cfg.paths.keys():

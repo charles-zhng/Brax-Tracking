@@ -51,7 +51,6 @@ envs.register_environment("fly_run", Fruitfly_Run)
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
-
     # Create paths if they don't exist and Path objects
     for k in cfg.paths.keys():
         if k != "user":
