@@ -151,7 +151,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     frames = []
     # render while stepping using mujoco
     video_path = f"{model_path}/{num_steps}.mp4"
-    with imageio.get_writer(video_path, fps=int((1.0 / env.dt))) as video:
+    with imageio.get_writer(video_path, fps=50) as video:
         with mujoco.Renderer(mj_model, height=512, width=512) as renderer:
             for qpos1, qpos2 in zip(qposes_rollout, qposes_ref):
                 mj_data.qpos = np.append(qpos1, qpos2)

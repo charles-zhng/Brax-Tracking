@@ -759,29 +759,29 @@ class Fruitfly_Run(PipelineEnv):
         cur_frame = (
             info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
         ) % self._clip_len
-        
+              
         track_joints = self._ref_traj.joints
-        joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame])** 2) 
+        joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame,self._joint_idxs])** 2) 
         # joint_reward = self._joint_reward_weight * jp.exp(-0.1 * joint_distance)
-        joint_reward = self._joint_reward_weight * jp.exp(-0.5/.95**2 * joint_distance)
+        joint_reward = self._joint_reward_weight* jp.exp(-0.5/.8**2  * joint_distance)
         info["joint_distance"] = joint_distance
 
-        track_angvel = self._ref_traj.angular_velocity
-        angvel_distance = jp.sum((data.qvel[3:6] - track_angvel[cur_frame])** 2)
-        # angvel_reward = self._angvel_reward_weight * jp.exp(-0.01 * angvel_distance)
+        track_angvel = self._ref_traj.joints_velocity
+        angvel_distance = jp.sum((data.qvel[self._joint_idxs] - track_angvel[cur_frame,self._joint_idxs])** 2)
+        angvel_reward = self._angvel_reward_weight * jp.exp(-0.005 * angvel_distance)
         # angvel_reward = self._angvel_reward_weight * jp.exp(-0.5/53.7801**2 * angvel_distance)
-        angvel_reward = self._angvel_reward_weight * jp.exp(-0.5 * angvel_distance)
+        # angvel_reward = self._angvel_reward_weight* jp.exp(-20 * angvel_distance)
         info["angvel_distance"]
         
         track_bodypos = self._ref_traj.body_positions
         bodypos_distance = jp.sum((data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]).flatten()** 2)
-        bodypos_reward = self._bodypos_reward_weight * jp.exp(-50* bodypos_distance)
         # bodypos_reward = self._bodypos_reward_weight * jp.exp(-0.1* bodypos_distance)
+        bodypos_reward = self._bodypos_reward_weight* jp.exp(-50 * bodypos_distance)
         info["bodypos_distance"] = bodypos_distance
         
-        endeff_distance = jp.sum((data.xpos[self._endeff_idxs] - track_bodypos[cur_frame][self._endeff_idxs]).flatten()** 2)
-        endeff_reward = self._endeff_reward_weight * jp.exp(-700 * endeff_distance)
-        # endeff_reward = self._endeff_reward_weight * jp.exp(-0.5 * endeff_distance)
+        ##### z component of end effector position #####
+        endeff_distance = jp.sum((data.xpos[self._endeff_idxs,2] - track_bodypos[cur_frame][self._endeff_idxs,2]).flatten()** 2)
+        endeff_reward = self._endeff_reward_weight* jp.exp(-30 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
         track_quat = self._ref_traj.body_quaternions
