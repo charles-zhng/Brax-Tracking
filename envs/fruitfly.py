@@ -251,9 +251,9 @@ class Fruitfly_Tethered(PipelineEnv):
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] > max_z, 0.0, is_healthy)
         if self._terminate_when_unhealthy:
-            healthy_reward = self._healthy_reward
-        else:
             healthy_reward = self._healthy_reward * is_healthy
+        else:
+            healthy_reward = self._healthy_reward 
         summed_pos_distance = jp.sum((pos_distance * jp.array([1.0, 1.0, 0.2])) ** 2)
         too_far = jp.where(summed_pos_distance > self._too_far_dist, 1.0, 0.0)
         info["summed_pos_distance"] = summed_pos_distance
@@ -285,7 +285,7 @@ class Fruitfly_Tethered(PipelineEnv):
             + healthy_reward
             - ctrl_cost
         )
-        done = 1.0 - is_healthy if self._terminate_when_unhealthy else 0.0
+        done = 1.0 - is_healthy  if self._terminate_when_unhealthy else 0.0 
         done = jp.max(jp.array([done, too_far, bad_pose, bad_quat]))
 
         # Handle nans during sim by resetting env
