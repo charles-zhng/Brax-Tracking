@@ -12,7 +12,8 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     '''Log the rollout to wandb'''
     
     # Log the metrics for the rollout
-    for metric in ['pos_reward','bodypos_reward','joint_reward','quat_reward']:
+    reward_metrics = ['pos_reward', 'quat_reward', 'joint_reward', 'angvel_reward', 'bodypos_reward', 'endeff_reward', 'reward_ctrl', 'healthy_reward']
+    for metric in reward_metrics:
         metric_values = [state.metrics[metric] for state in rollout]
         table = wandb.Table(
             data=[[x, y] for (x, y) in zip(range(len(metric_values)), metric_values)],

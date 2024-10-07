@@ -15,11 +15,6 @@ def slurm_submit(script):
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def submit(cfg: DictConfig) -> None:
     
-    import uuid
-    # Generates a completely random UUID (version 4)
-    run_id = uuid.uuid4()
-    
-    
     """Submit job to cluster."""
     script = f"""#!/bin/bash
 #SBATCH --job-name=Fruitfly    
@@ -40,7 +35,7 @@ set -x
 source ~/.bashrc
 nvidia-smi
 conda activate stac-mjx-env
-python -u main_requeue.py paths=hyak train.note=hyak_ckpt version=ckpt train={cfg.train.name} dataset={cfg.dataset.dname} train.num_envs={cfg.num_gpus*cfg.train.num_envs} +run_id=$SLURM_JOB_ID
+python -u main_requeue.py paths=hyak train.note={cfg.train.note} version=ckpt train={cfg.train.name} dataset={cfg.dataset.dname} train.num_envs={cfg.num_gpus*cfg.train.num_envs} +run_id=$SLURM_JOB_ID
             """
     print(f"Submitting job")
     print(script)
@@ -54,4 +49,5 @@ if __name__ == "__main__":
 
 ##### Saving command ######
 #  python scripts/slurm-run_bbrunton.py paths=hyak train=train_fly_run dataset=fly_run train.note=hyak train.num_envs=1024 gpu=0
-#  python scripts/slurm-run_ckpt.py paths=hyak train.note=hyak_ckpt train=train_fly dataset=fly train.num_envs=1024 +num_gpus=4
+#  python scripts/slurm-run_ckpt.py paths=hyak train.note=hyak_ckpt train=train_fly_run dataset=fly_run train.num_envs=1024 +num_gpus=4
+#  python scripts/slurm-run_ckpt.py paths=hyak train.note=hyak_ckpt train=train_fly dataset=fly train.num_envs=1024 +num_gpus=8

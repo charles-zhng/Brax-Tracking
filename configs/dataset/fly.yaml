@@ -23,7 +23,7 @@ env_args:
   joint_reward_weight: 10.0
   angvel_reward_weight: 1.0
   bodypos_reward_weight: 1.0
-  endeff_reward_weight: 1.0
+  endeff_reward_weight: 10.0
   healthy_reward: 0.25
   healthy_z_range: [-0.05, 0.1]
   terminate_when_unhealthy: True
