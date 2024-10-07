@@ -29,7 +29,7 @@ class RenderRolloutWrapperTracking(Wrapper):
         # new_qpos = qpos_with_pos.at[3:7].set(self._track_quat[0])
 
         # Add noise
-        qpos = new_qpos #+ jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
+        qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
         qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
 
         data = self.pipeline_init(qpos, qvel)
