@@ -160,7 +160,10 @@ class Fruitfly_Tethered(PipelineEnv):
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
         # Add pos (without z height)
-        new_qpos = jp.array(self.sys.qpos0)
+        # new_qpos = jp.array(self._ref_traj.joints[start_frame])
+        init_q = self.sys.qpos0
+        init_q = init_q.at[self._joint_idxs].set(self._ref_traj.joints[0,self._joint_idxs])
+        new_qpos = jp.array(init_q)
 
         # Add quat
         # new_qpos = qpos_with_pos.at[3:7].set(self._track_quat[start_frame])

@@ -1,7 +1,7 @@
 import os
 
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Use GPU 1
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Use GPU 1
 import functools
 import jax
 # jax.config.update("jax_enable_x64", True)
@@ -76,7 +76,13 @@ def main(cfg: DictConfig) -> None:
         with open(reference_path, "wb") as file:
             # Use pickle.dump() to save the data to the file
             pickle.dump(reference_clip, file)
-
+    
+    # model_path = Path('/data/users/eabe/biomech_model/Flybody/RL_Flybody/debug/ckpt/52010658-63bd-41ca-948c-f315fd4959c4/')
+    # ckpt_files = sorted(list(model_path.glob('*[!.mp4]')))
+    # ##### Get the latest checkpoint #####
+    # max_ckpt = list(model_path.glob(f'*{max([int(file.stem) for file in ckpt_files])}'))[0]
+    # restore_checkpoint = max_ckpt.as_posix()
+    
     # Init env
     env = envs.get_environment(
         cfg.train.env_name,
@@ -147,13 +153,14 @@ def main(cfg: DictConfig) -> None:
     jit_step = jax.jit(rollout_env.step)
 
     def policy_params_fn(num_steps, make_policy, params, model_path=model_path):
-        orbax_checkpointer = ocp.PyTreeCheckpointer()
+        ckptr = ocp.Checkpointer(ocp.PyTreeCheckpointHandler())
         save_args = orbax_utils.save_args_from_target(params)
         path = model_path / f'{num_steps}'
         os.makedirs(path, exist_ok=True)
-        orbax_checkpointer.save(path, params, force=True, save_args=save_args)
-        policy_params_key = jax.random.key(0)       
-        jit_inference_fn = jax.jit(make_policy(params, deterministic=True))
+        ckptr.save(path, params, force=True, save_args=save_args)
+        policy_params_key = jax.random.key(0)
+        policy_params = (params[0],params[1].policy)
+        jit_inference_fn = jax.jit(make_policy(policy_params, deterministic=True))
         _, policy_params_key = jax.random.split(policy_params_key)
         reset_rng, act_rng = jax.random.split(policy_params_key)
 

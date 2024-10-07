@@ -21,13 +21,15 @@ class RenderRolloutWrapperTracking(Wrapper):
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
         # Add pos (without z height)
-        new_qpos = jp.array(self.sys.qpos0)
+        init_q = self.sys.qpos0
+        init_q = init_q.at[self._joint_idxs].set(self._ref_traj.joints[0,self._joint_idxs])
+        new_qpos = jp.array(init_q)
 
         # Add quat
         # new_qpos = qpos_with_pos.at[3:7].set(self._track_quat[0])
 
         # Add noise
-        qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
+        qpos = new_qpos #+ jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
         qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
 
         data = self.pipeline_init(qpos, qvel)

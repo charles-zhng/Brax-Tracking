@@ -180,8 +180,9 @@ def main(cfg: DictConfig) -> None:
             path = model_path / f'{num_steps}'
             os.makedirs(path, exist_ok=True)
             ckptr.save(path, params, force=True, save_args=save_args)
-            policy_params_key = jax.random.key(0)    
-            jit_inference_fn = jax.jit(make_policy(params, deterministic=True))
+            policy_params_key = jax.random.key(0)
+            policy_params = (params[0],params[1].policy)
+            jit_inference_fn = jax.jit(make_policy(policy_params, deterministic=True))
             _, policy_params_key = jax.random.split(policy_params_key)
             reset_rng, act_rng = jax.random.split(policy_params_key)
 

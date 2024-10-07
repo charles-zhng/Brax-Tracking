@@ -413,14 +413,19 @@ def train(
         and epath.Path(restore_checkpoint_path).exists()
     ):
         logging.info("restoring from checkpoint %s", restore_checkpoint_path)
+        env_steps = int(epath.Path(restore_checkpoint_path).stem)
         orbax_checkpointer = ocp.PyTreeCheckpointer()
         target = training_state.normalizer_params, init_params
-        (normalizer_params, init_params) = orbax_checkpointer.restore(
-            restore_checkpoint_path, item=None
-        )
-        training_state = training_state.replace(
-            normalizer_params=normalizer_params, params=init_params
-        )
+        (normalizer_params, load_params) = orbax_checkpointer.restore(
+            restore_checkpoint_path, item=target, restore_args=flax.training.orbax_utils.restore_args_from_target(target, mesh=None))
+        init_params = init_params.replace(policy=load_params.policy, value=load_params.value)
+        training_state = TrainingState(  # pytype: disable=wrong-arg-types  # jax-ndarray
+            optimizer_state=optimizer.init(
+                init_params
+            ),  # pytype: disable=wrong-arg-types  # numpy-scalars
+            params=init_params,
+            normalizer_params=normalizer_params,
+            env_steps=env_steps,)
 
     training_state = jax.device_put_replicated(
         training_state, jax.local_devices()[:local_devices_to_use]
@@ -490,7 +495,7 @@ def train(
             logging.info(metrics)
             progress_fn(current_step, metrics)
             params = _unpmap(
-                (training_state.normalizer_params, training_state.params.policy)
+                (training_state.normalizer_params, training_state.params) ##### Made to output value as well
             )
             policy_params_fn(current_step, make_policy, params)
 
@@ -500,7 +505,7 @@ def train(
     # If there was no mistakes the training_state should still be identical on all
     # devices.
     pmap.assert_is_replicated(training_state)
-    params = _unpmap((training_state.normalizer_params, training_state.params.policy))
+    params = _unpmap((training_state.normalizer_params, training_state.params))
     logging.info("total steps: %s", total_steps)
     pmap.synchronize_hosts()
     return (make_policy, params, metrics)
