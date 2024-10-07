@@ -243,7 +243,7 @@ class Fruitfly_Tethered(PipelineEnv):
         
         ##### z component of end effector position #####
         endeff_distance = jp.sum((data.xpos[self._endeff_idxs,2] - track_bodypos[cur_frame][self._endeff_idxs,2]).flatten()** 2)
-        endeff_reward = self._endeff_reward_weight* jp.exp(-30 * endeff_distance)
+        endeff_reward = self._endeff_reward_weight* jp.exp(-1200 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
         track_quat = self._ref_traj.body_quaternions
