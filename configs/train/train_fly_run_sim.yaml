@@ -1,0 +1,22 @@
+name: train_fly_run_sim
+version: ${resolve_default:debug,${..version}}
+gpu: ${resolve_default:1,${..gpu}}
+wandb_project: "eabe_debug"
+env_name: fly_run_sim
+algo_name: ppo
+task_name: track
+note: 
+num_envs: 1024
+num_timesteps: 3_000_000_000
+eval_every: 100_000_000
+episode_length: 250
+batch_size: ${train.num_envs}
+learning_rate: 3e-4
+num_minibatches: 32
+num_updates_per_batch: 16
+clipping_epsilon: 0.3
+entropy_cost: 1e-3
+action_repeat: 1
+unroll_length: 16
+discounting: 0.99
+mlp_policy_layer_sizes: [512, 512]

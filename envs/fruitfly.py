@@ -539,7 +539,7 @@ class Fruitfly_Tethered(PipelineEnv):
 
 
 class Fruitfly_Run(PipelineEnv):
-    """Environment for training the barkour quadruped joystick policy in MJX."""
+    """Environment for training the fly joystick policy in MJX."""
     def __init__(
         self,
         reference_clip,
@@ -1118,6 +1118,171 @@ class Fruitfly_Run(PipelineEnv):
         # shape and magnitude.
         return 0.5 * jp.arccos(dist)[..., np.newaxis]
 
+    def render(
+        self,
+        trajectory: List[base.State],
+        camera: str | None = None,
+        width: int = 480,
+        height: int = 320,
+        scene_option: Any = None,
+    ) -> Sequence[np.ndarray]:
+        camera = camera or "track"
+        return super().render(
+            trajectory,
+            camera=camera,
+            width=width,
+            height=height,
+            scene_option=scene_option,
+        )
+
+
+
+
+class FlyRunSim(PipelineEnv):
+    def __init__(
+        self,
+        reference_clip,
+        mjcf_path: str = "./assets/fruitfly/fruitfly_force_freerun.xml",
+        clip_length: int = 250,
+        obs_noise: float = 0.05,
+        ctrl_cost_weight=0.01,
+        forward_reward_weight=1.25,
+        healthy_reward=5.0,
+        healthy_z_range=(0.03, 0.5),
+        physics_steps_per_control_step=10,
+        reset_noise_scale=1e-3,
+        sim_timestep: float = 2e-4,
+        solver="cg",
+        iterations: int = 6,
+        ls_iterations: int = 6,
+        terminate_when_unhealthy=True,
+        free_jnt=True,
+        inference_mode=False,
+        **kwargs,
+    ):
+        
+        spec = mujoco.MjSpec()
+        spec.from_file(mjcf_path)
+        thorax = spec.find_body("thorax")
+        first_joint = thorax.first_joint()
+        if (free_jnt == False) & (first_joint.name == "free"):
+            first_joint.delete()
+        mj_model = spec.compile()
+
+        mj_model.opt.solver = {
+            "cg": mujoco.mjtSolver.mjSOL_CG,
+            "newton": mujoco.mjtSolver.mjSOL_NEWTON,
+        }[solver.lower()]
+        mj_model.opt.iterations = iterations
+        mj_model.opt.ls_iterations = ls_iterations
+        mj_model.opt.timestep = sim_timestep
+        mj_model.opt.jacobian = 0
+
+        sys = mjcf_brax.load_model(mj_model)
+
+        kwargs["n_frames"] = kwargs.get("n_frames", physics_steps_per_control_step)
+        kwargs["backend"] = "mjx"
+
+        super().__init__(sys, **kwargs)
+        
+        self._nv = sys.nv
+        self._nq = sys.nq
+        self._nu = sys.nu
+        self._obs_noise = obs_noise
+        self._reset_noise_scale = reset_noise_scale
+        self._sim_timestep = sim_timestep
+        self._free_jnt = free_jnt
+        self._inference_mode = inference_mode
+        self._forward_reward_weight = forward_reward_weight
+        self._ctrl_cost_weight = ctrl_cost_weight
+        self._healthy_reward = healthy_reward
+        self._healthy_z_range = healthy_z_range
+        self._reset_noise_scale = reset_noise_scale
+        self._terminate_when_unhealthy = terminate_when_unhealthy
+
+
+    def reset(self, rng: jp.ndarray) -> State:
+        """Resets the environment to an initial state."""
+        rng, rng1, rng2 = jax.random.split(rng, 3)
+
+        low, hi = -self._reset_noise_scale, self._reset_noise_scale
+        qpos = self.sys.qpos0 + jax.random.uniform(
+            rng1, (self.sys.nq,), minval=low, maxval=hi
+        )
+        qvel = jax.random.uniform(
+            rng2, (self.sys.nv,), minval=low, maxval=hi
+        )
+
+        data = self.pipeline_init(qpos, qvel)
+
+        obs = self._get_obs(data, jp.zeros(self.sys.nu))
+        reward, done, zero = jp.zeros(3)
+        metrics = {
+            'forward_reward': zero,
+            'reward_linvel': zero,
+            'reward_quadctrl': zero,
+            'reward_alive': zero,
+            'x_position': zero,
+            'y_position': zero,
+            'distance_from_origin': zero,
+            'x_velocity': zero,
+            'y_velocity': zero,
+        }
+        return State(data, obs, reward, done, metrics)
+
+    def step(self, state: State, action: jp.ndarray) -> State:
+        """Runs one timestep of the environment's dynamics."""
+        data0 = state.pipeline_state
+        data = self.pipeline_step(data0, action)
+
+        com_before = data0.subtree_com[1]
+        com_after = data.subtree_com[1]
+        velocity = (com_after - com_before) / self.dt
+        forward_reward = self._forward_reward_weight * velocity[0]
+
+        min_z, max_z = self._healthy_z_range
+        is_healthy = jp.where(data.q[2] < min_z, 0.0, 1.0)
+        is_healthy = jp.where(data.q[2] > max_z, 0.0, is_healthy)
+        if self._terminate_when_unhealthy:
+            healthy_reward = self._healthy_reward
+        else:
+            healthy_reward = self._healthy_reward * is_healthy
+
+        ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
+
+        obs = self._get_obs(data, action)
+        reward = forward_reward + healthy_reward - ctrl_cost
+        done = 1.0 - is_healthy if self._terminate_when_unhealthy else 0.0
+        state.metrics.update(
+            forward_reward=forward_reward,
+            reward_linvel=forward_reward,
+            reward_quadctrl=-ctrl_cost,
+            reward_alive=healthy_reward,
+            x_position=com_after[0],
+            y_position=com_after[1],
+            distance_from_origin=jp.linalg.norm(com_after),
+            x_velocity=velocity[0],
+            y_velocity=velocity[1],
+        )
+
+        return state.replace(
+            pipeline_state=data, obs=obs, reward=reward, done=done
+        )
+
+    def _get_obs(
+        self, data: mjx.Data, action: jp.ndarray
+    ) -> jp.ndarray:
+        """Observes fly body position, velocities, and angles."""
+        position = data.qpos
+        # external_contact_forces are excluded
+        return jp.concatenate([
+            position,
+            data.qvel,
+            data.cinert[1:].ravel(),
+            data.cvel[1:].ravel(),
+            data.qfrc_actuator,
+        ])
+        
     def render(
         self,
         trajectory: List[base.State],
