@@ -85,13 +85,13 @@ def log_eval_rollout_run_sim(cfg, rollout, state, env, model_path, num_steps):
     repeats_per_frame = 1 #int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
     spec = mujoco.MjSpec()
     spec.from_file(cfg.dataset.rendering_mjcf)
-    thorax0 = spec.find_body("thorax")
-    first_joint0 = thorax0.first_joint()
-    if (env._free_jnt == False) & ('free' in first_joint0.name):
-        first_joint0.delete()
-        thorax1 = spec.find_body("thorax")
-        first_joint1 = thorax1.first_joint()
-        first_joint1.delete()
+    # thorax0 = spec.find_body("thorax")
+    # first_joint0 = thorax0.first_joint()
+    # if (env._free_jnt == False) & ('free' in first_joint0.name):
+    #     first_joint0.delete()
+    #     thorax1 = spec.find_body("thorax")
+    #     first_joint1 = thorax1.first_joint()
+    #     first_joint1.delete()
     mj_model = spec.compile()
     spec = mujoco.MjSpec()
 
@@ -106,7 +106,9 @@ def log_eval_rollout_run_sim(cfg, rollout, state, env, model_path, num_steps):
 
     scene_option = mujoco.MjvOption()
     scene_option.sitegroup[:] = [1, 1, 1, 1, 1, 0]
-
+    scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTPOINT] = True
+    scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = True
+    
     # save rendering and log to wandb
     os.environ["MUJOCO_GL"] = "osmesa"
     mujoco.mj_kinematics(mj_model, mj_data)

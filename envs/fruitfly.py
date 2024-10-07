@@ -1158,15 +1158,16 @@ class FlyRunSim(PipelineEnv):
         terminate_when_unhealthy=True,
         free_jnt=True,
         inference_mode=False,
+        center_of_mass='thorax',
         **kwargs,
     ):
         
         spec = mujoco.MjSpec()
         spec.from_file(mjcf_path)
-        thorax = spec.find_body("thorax")
-        first_joint = thorax.first_joint()
-        if (free_jnt == False) & (first_joint.name == "free"):
-            first_joint.delete()
+        # thorax = spec.find_body("thorax")
+        # first_joint = thorax.first_joint()
+        # if (free_jnt == False) & (first_joint.name == "free"):
+        #     first_joint.delete()
         mj_model = spec.compile()
 
         mj_model.opt.solver = {
@@ -1184,7 +1185,9 @@ class FlyRunSim(PipelineEnv):
         kwargs["backend"] = "mjx"
 
         super().__init__(sys, **kwargs)
-        
+        self._thorax_idx = mujoco.mj_name2id(
+            mj_model, mujoco.mju_str2Type("body"), center_of_mass
+        )
         self._nv = sys.nv
         self._nq = sys.nq
         self._nu = sys.nu
@@ -1253,6 +1256,11 @@ class FlyRunSim(PipelineEnv):
         obs = self._get_obs(data, action)
         reward = forward_reward + healthy_reward - ctrl_cost
         done = 1.0 - is_healthy if self._terminate_when_unhealthy else 0.0
+        
+        # Handle nans during sim by resetting env
+        reward = jp.nan_to_num(reward)
+        obs = jp.nan_to_num(obs)
+        
         state.metrics.update(
             forward_reward=forward_reward,
             reward_linvel=forward_reward,
