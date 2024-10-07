@@ -43,7 +43,7 @@ class Fruitfly_Tethered(PipelineEnv):
         pos_reward_weight=0.0,
         quat_reward_weight=1.0,
         joint_reward_weight=10.0,
-        angvel_reward_weight=10.0,
+        angvel_reward_weight=1.0,
         bodypos_reward_weight=1.0,
         endeff_reward_weight=1.0,
         healthy_reward=0.25,

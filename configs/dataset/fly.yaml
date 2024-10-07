@@ -4,7 +4,7 @@ camera: 1
 rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_pair.xml
 stac_path: ${paths.data_dir}/transform_tethered.p
 clip_idx: 0
-ref_traj_length: 15
+ref_traj_length: 5
 env_args:
   clip_length: 601
   mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fastball.xml" 
@@ -21,7 +21,7 @@ env_args:
   pos_reward_weight: 0.0
   quat_reward_weight: 1.0
   joint_reward_weight: 10.0
-  angvel_reward_weight: 1.0
+  angvel_reward_weight: 10.0
   bodypos_reward_weight: 1.0
   endeff_reward_weight: 10.0
   healthy_reward: 0.25
