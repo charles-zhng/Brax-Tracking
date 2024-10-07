@@ -98,7 +98,7 @@ def main(cfg: DictConfig) -> None:
             ckpt_files = sorted(list(model_path.glob('*[!.mp4]')))
             ##### Get the latest checkpoint #####
             max_ckpt = list(model_path.glob(f'*{max([int(file.stem) for file in ckpt_files])}'))[0]
-            restore_checkpoint = max_ckpt.parent.as_posix()
+            restore_checkpoint = max_ckpt.as_posix()
         else:
             raise ValueError('Model path does not exist. Starting from scratch.')
     except (ValueError):
