@@ -1244,8 +1244,8 @@ class FlyRunSim(PipelineEnv):
         forward_reward = self._forward_reward_weight * velocity[0]
 
         min_z, max_z = self._healthy_z_range
-        is_healthy = jp.where(data.qpos[self._thorax_idx] < min_z, 0.0, 1.0)
-        is_healthy = jp.where(data.qpos[self._thorax_idx] > max_z, 0.0, is_healthy)
+        is_healthy = jp.where(data.qpos[2] < min_z, 0.0, 1.0)
+        is_healthy = jp.where(data.qpos[2] > max_z, 0.0, is_healthy)
         if self._terminate_when_unhealthy:
             healthy_reward = self._healthy_reward
         else:
