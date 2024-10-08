@@ -5,7 +5,7 @@ dataset_name: ${dataset.name}
 # if set to positive integer, overrides the default
 version: ''
 seed: 42
-gpu: ''
+num_gpus: ''
 
 # model: ${dataset.model}
 
@@ -38,6 +38,8 @@ hydra:
             - gpu
             - train
             - train.note
+            - num_gpus
+            - train.num_env
 
   run:
     dir: ${paths.base_dir}/${hydra:job.override_dirname}

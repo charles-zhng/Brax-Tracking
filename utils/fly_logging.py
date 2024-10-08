@@ -32,7 +32,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
         )
         
     # Log the info for the rollout
-    for info_metric in ['summed_pos_distance','joint_distance','quat_distance','angvel_distance','endeff_distance']:
+    for info_metric in ['joint_distance','quat_distance','angvel_distance','endeff_distance','current_frame']:
         info_metric_values = [state.info[info_metric] for state in rollout]
         table = wandb.Table(
             data=[[x, y] for (x, y) in zip(range(len(info_metric_values)), info_metric_values)],

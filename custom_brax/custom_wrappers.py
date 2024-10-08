@@ -10,7 +10,7 @@ class RenderRolloutWrapperTracking(Wrapper):
         rng, rng1, rng2 = jax.random.split(rng, 3)
         info = {
             "start_frame": 0,
-            "summed_pos_distance": 0.0,
+            "current_frame": 0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
             "angvel_distance": 0.0,
@@ -108,7 +108,9 @@ class RenderRolloutWrapperTracking_RunSim(Wrapper):
     """Always resets to 0"""
 
     def reset(self, rng: jax.Array) -> State:
+        """Resets the environment to an initial state."""
         rng, rng1, rng2 = jax.random.split(rng, 3)
+
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
         qpos = self.sys.qpos0 + jax.random.uniform(
             rng1, (self.sys.nq,), minval=low, maxval=hi
@@ -117,12 +119,10 @@ class RenderRolloutWrapperTracking_RunSim(Wrapper):
             rng2, (self.sys.nv,), minval=low, maxval=hi
         )
 
-        pipeline_state = self.pipeline_init(qpos, qvel)
+        data = self.pipeline_init(qpos, qvel)
 
-        obs_history = jp.zeros(15 * 91)  # store 15 steps of history
-        obs = self._get_obs(pipeline_state, jp.zeros(self.sys.nu))
+        obs = self._get_obs(data, jp.zeros(self.sys.nu))
         reward, done, zero = jp.zeros(3)
-        
         metrics = {
             'forward_reward': zero,
             'reward_linvel': zero,
@@ -134,5 +134,4 @@ class RenderRolloutWrapperTracking_RunSim(Wrapper):
             'x_velocity': zero,
             'y_velocity': zero,
         }
-        
-        return State(pipeline_state, obs, reward, done, metrics)  
+        return State(data, obs, reward, done, metrics)

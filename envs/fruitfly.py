@@ -149,7 +149,8 @@ class Fruitfly_Tethered(PipelineEnv):
 
         info = {
             "start_frame": start_frame,
-            "summed_pos_distance": 0.0,
+            # "summed_pos_distance": 0.0,
+            "current_frame": start_frame,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
             "angvel_distance": 0.0,
@@ -187,7 +188,7 @@ class Fruitfly_Tethered(PipelineEnv):
             "endeff_reward": zero,
             "reward_ctrl": zero,
             "healthy_reward": zero,
-            "too_far": zero,
+            # "too_far": zero,
             "bad_pose": zero,
             "bad_quat": zero,
             "fall": zero,
@@ -205,7 +206,7 @@ class Fruitfly_Tethered(PipelineEnv):
         cur_frame = (
             info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
         ) % self._clip_len
-
+        info["current_frame"] += 1
         # if self._ref_traj.position is not None:
         #     track_pos = self._ref_traj.position
         #     pos_distance = data.qpos[:3] - track_pos[cur_frame]
@@ -248,7 +249,8 @@ class Fruitfly_Tethered(PipelineEnv):
 
         track_quat = self._ref_traj.body_quaternions
         quat_distance = jp.sum(self._bounded_quat_dist(data.xquat[self._body_idxs], track_quat[cur_frame,self._body_idxs]) ** 2)
-        quat_reward =  self._quat_reward_weight * jp.exp(-1 * quat_distance)
+        quat_reward =  self._quat_reward_weight * jp.exp(-0.05 * quat_distance)
+        info["quat_distance"] = quat_distance
         
         min_z, max_z = self._healthy_z_range
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
@@ -257,10 +259,9 @@ class Fruitfly_Tethered(PipelineEnv):
             healthy_reward = self._healthy_reward * is_healthy
         else:
             healthy_reward = self._healthy_reward 
-        summed_pos_distance = jp.sum((pos_distance * jp.array([1.0, 1.0, 0.2])) ** 2)
-        too_far = jp.where(summed_pos_distance > self._too_far_dist, 1.0, 0.0)
-        info["summed_pos_distance"] = summed_pos_distance
-        info["quat_distance"] = quat_distance
+        # summed_pos_distance = jp.sum((pos_distance * jp.array([1.0, 1.0, 0.2])) ** 2)
+        # too_far = jp.where(summed_pos_distance > self._too_far_dist, 1.0, 0.0)
+        # info["summed_pos_distance"] = summed_pos_distance
         bad_pose = jp.where(joint_distance > self._bad_pose_dist, 1.0, 0.0)
         bad_quat = jp.where(quat_distance > self._bad_quat_dist, 1.0, 0.0)
         ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
@@ -289,7 +290,7 @@ class Fruitfly_Tethered(PipelineEnv):
             - ctrl_cost
         )
         done = 1.0 - is_healthy  if self._terminate_when_unhealthy else 0.0 
-        done = jp.max(jp.array([done, too_far, bad_pose, bad_quat]))
+        done = jp.max(jp.array([done, bad_pose, bad_quat]))
 
         # Handle nans during sim by resetting env
         reward = jp.nan_to_num(reward)
@@ -311,7 +312,7 @@ class Fruitfly_Tethered(PipelineEnv):
             endeff_reward=endeff_reward,
             reward_ctrl=-ctrl_cost,
             healthy_reward=healthy_reward,
-            too_far=too_far,
+            # too_far=too_far,
             bad_pose=bad_pose,
             bad_quat=bad_quat,
             fall=1 - is_healthy,
@@ -1148,7 +1149,7 @@ class FlyRunSim(PipelineEnv):
         ctrl_cost_weight=0.01,
         forward_reward_weight=1.25,
         healthy_reward=5.0,
-        healthy_z_range=(0.03, 0.5),
+        healthy_z_range=(-0.05, 0.1),
         physics_steps_per_control_step=10,
         reset_noise_scale=1e-3,
         sim_timestep: float = 2e-4,
@@ -1185,6 +1186,7 @@ class FlyRunSim(PipelineEnv):
         kwargs["backend"] = "mjx"
 
         super().__init__(sys, **kwargs)
+        
         self._thorax_idx = mujoco.mj_name2id(
             mj_model, mujoco.mju_str2Type("body"), center_of_mass
         )
@@ -1244,8 +1246,8 @@ class FlyRunSim(PipelineEnv):
         forward_reward = self._forward_reward_weight * velocity[0]
 
         min_z, max_z = self._healthy_z_range
-        is_healthy = jp.where(data.qpos[2] < min_z, 0.0, 1.0)
-        is_healthy = jp.where(data.qpos[2] > max_z, 0.0, is_healthy)
+        is_healthy = jp.where(data.q[2] < min_z, 0.0, 1.0)
+        is_healthy = jp.where(data.q[2] > max_z, 0.0, is_healthy)
         if self._terminate_when_unhealthy:
             healthy_reward = self._healthy_reward
         else:
@@ -1260,6 +1262,12 @@ class FlyRunSim(PipelineEnv):
         # Handle nans during sim by resetting env
         reward = jp.nan_to_num(reward)
         obs = jp.nan_to_num(obs)
+        
+        from jax.flatten_util import ravel_pytree
+        flattened_vals, _ = ravel_pytree(data)
+        num_nans = jp.sum(jp.isnan(flattened_vals))
+        nan = jp.where(num_nans > 0, 1.0, 0.0)
+        done = jp.max(jp.array([nan, done]))
         
         state.metrics.update(
             forward_reward=forward_reward,

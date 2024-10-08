@@ -36,7 +36,7 @@ set -x
 source ~/.bashrc
 nvidia-smi
 conda activate stac-mjx-env
-python -u main_requeue.py paths=hyak train.note={cfg.train.note} version=ckpt train={cfg.train.name} dataset={cfg.dataset.dname} train.num_envs={cfg.num_gpus*cfg.train.num_envs} +run_id=$SLURM_JOB_ID +num_gpus={cfg.num_gpus}
+python -u main_requeue.py paths=hyak train.note={cfg.train.note} version=ckpt train={cfg.train.name} dataset={cfg.dataset.dname} train.num_envs={cfg.num_gpus*cfg.train.num_envs} +run_id=$SLURM_JOB_ID num_gpus={cfg.num_gpus}
             """
     print(f"Submitting job")
     print(script)
