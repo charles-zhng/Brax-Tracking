@@ -1148,6 +1148,7 @@ class FlyRunSim(PipelineEnv):
         obs_noise: float = 0.05,
         ctrl_cost_weight=0.01,
         forward_reward_weight=1.25,
+        ang_vel_xy_weight=-0.05,
         healthy_reward=5.0,
         healthy_z_range=(-0.05, 0.1),
         physics_steps_per_control_step=10,
@@ -1199,6 +1200,7 @@ class FlyRunSim(PipelineEnv):
         self._free_jnt = free_jnt
         self._inference_mode = inference_mode
         self._forward_reward_weight = forward_reward_weight
+        self._ang_vel_xy_weight = ang_vel_xy_weight
         self._ctrl_cost_weight = ctrl_cost_weight
         self._healthy_reward = healthy_reward
         self._healthy_z_range = healthy_z_range
@@ -1254,9 +1256,11 @@ class FlyRunSim(PipelineEnv):
             healthy_reward = self._healthy_reward * is_healthy
 
         ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
-
+        
+        x, xd = data.x, data.xd
+        xy_ang_reward = self._ang_vel_xy_weight * self._reward_ang_vel_xy(xd)
         obs = self._get_obs(data, action)
-        reward = forward_reward + healthy_reward - ctrl_cost
+        reward = forward_reward + healthy_reward + xy_ang_reward - ctrl_cost 
         done = 1.0 - is_healthy if self._terminate_when_unhealthy else 0.0
         
         # Handle nans during sim by resetting env
@@ -1298,7 +1302,11 @@ class FlyRunSim(PipelineEnv):
             data.cvel[1:].ravel(),
             data.qfrc_actuator,
         ])
-        
+    
+    def _reward_ang_vel_xy(self, xd: Motion) -> jax.Array:
+        # Penalize xy axes base angular velocity
+        return jp.sum(jp.square(xd.ang[0, :2]))
+    
     def render(
         self,
         trajectory: List[base.State],

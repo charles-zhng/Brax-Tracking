@@ -39,7 +39,7 @@ hydra:
             - train
             - train.note
             - num_gpus
-            - train.num_env
+            - train.num_envs
 
   run:
     dir: ${paths.base_dir}/${hydra:job.override_dirname}
