@@ -47,7 +47,7 @@ class Fruitfly_Tethered(PipelineEnv):
         bodypos_reward_weight=1.0,
         endeff_reward_weight=1.0,
         healthy_reward=0.25,
-        healthy_z_range=(0.03, 0.5),
+        healthy_z_range=(-0.01, 0.1),
         physics_steps_per_control_step=10,
         reset_noise_scale=1e-3,
         sim_timestep: float = 2e-4,
@@ -225,12 +225,12 @@ class Fruitfly_Tethered(PipelineEnv):
         track_joints = self._ref_traj.joints
         joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame,self._joint_idxs])** 2) 
         # joint_reward = self._joint_reward_weight * jp.exp(-0.1 * joint_distance)
-        joint_reward = self._joint_reward_weight* jp.exp(-0.5/.8**2  * joint_distance)
+        joint_reward = self._joint_reward_weight * jp.exp(-0.05  * joint_distance)
         info["joint_distance"] = joint_distance
 
         track_angvel = self._ref_traj.joints_velocity
         angvel_distance = jp.sum((data.qvel[self._joint_idxs] - track_angvel[cur_frame,self._joint_idxs])** 2)
-        angvel_reward = self._angvel_reward_weight * jp.exp(-0.005 * angvel_distance)
+        angvel_reward = self._angvel_reward_weight *jp.exp(-0.005 * angvel_distance)
         # angvel_reward = self._angvel_reward_weight * jp.exp(-0.5/53.7801**2 * angvel_distance)
         # angvel_reward = self._angvel_reward_weight* jp.exp(-20 * angvel_distance)
         info["angvel_distance"]
@@ -238,17 +238,17 @@ class Fruitfly_Tethered(PipelineEnv):
         track_bodypos = self._ref_traj.body_positions
         bodypos_distance = jp.sum((data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]).flatten()** 2)
         # bodypos_reward = self._bodypos_reward_weight * jp.exp(-0.1* bodypos_distance)
-        bodypos_reward = self._bodypos_reward_weight* jp.exp(-50 * bodypos_distance)
+        bodypos_reward = self._bodypos_reward_weight * jp.exp(-250 * bodypos_distance)
         info["bodypos_distance"] = bodypos_distance
         
         ##### z component of end effector position #####
         endeff_distance = jp.sum((data.xpos[self._endeff_idxs,2] - track_bodypos[cur_frame][self._endeff_idxs,2]).flatten()** 2)
-        endeff_reward = self._endeff_reward_weight* jp.exp(-1200 * endeff_distance)
+        endeff_reward =  self._endeff_reward_weight * jp.exp(-1500 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
         track_quat = self._ref_traj.body_quaternions
         quat_distance = jp.sum(self._bounded_quat_dist(data.xquat[self._body_idxs], track_quat[cur_frame,self._body_idxs]) ** 2)
-        quat_reward =  self._quat_reward_weight * jp.exp(-0.05 * quat_distance)
+        quat_reward =  self._quat_reward_weight * jp.exp(-1 * quat_distance)
         
         min_z, max_z = self._healthy_z_range
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
@@ -766,12 +766,12 @@ class Fruitfly_Run(PipelineEnv):
         track_joints = self._ref_traj.joints
         joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame,self._joint_idxs])** 2) 
         # joint_reward = self._joint_reward_weight * jp.exp(-0.1 * joint_distance)
-        joint_reward = self._joint_reward_weight* jp.exp(-0.5/.8**2  * joint_distance)
+        joint_reward = self._joint_reward_weight * jp.exp(-0.05  * joint_distance)
         info["joint_distance"] = joint_distance
 
         track_angvel = self._ref_traj.joints_velocity
         angvel_distance = jp.sum((data.qvel[self._joint_idxs] - track_angvel[cur_frame,self._joint_idxs])** 2)
-        angvel_reward = self._angvel_reward_weight * jp.exp(-0.005 * angvel_distance)
+        angvel_reward = self._angvel_reward_weight *jp.exp(-0.005 * angvel_distance)
         # angvel_reward = self._angvel_reward_weight * jp.exp(-0.5/53.7801**2 * angvel_distance)
         # angvel_reward = self._angvel_reward_weight* jp.exp(-20 * angvel_distance)
         info["angvel_distance"]
@@ -779,17 +779,17 @@ class Fruitfly_Run(PipelineEnv):
         track_bodypos = self._ref_traj.body_positions
         bodypos_distance = jp.sum((data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]).flatten()** 2)
         # bodypos_reward = self._bodypos_reward_weight * jp.exp(-0.1* bodypos_distance)
-        bodypos_reward = self._bodypos_reward_weight* jp.exp(-50 * bodypos_distance)
+        bodypos_reward = self._bodypos_reward_weight * jp.exp(-250 * bodypos_distance)
         info["bodypos_distance"] = bodypos_distance
         
         ##### z component of end effector position #####
         endeff_distance = jp.sum((data.xpos[self._endeff_idxs,2] - track_bodypos[cur_frame][self._endeff_idxs,2]).flatten()** 2)
-        endeff_reward = self._endeff_reward_weight* jp.exp(-30 * endeff_distance)
+        endeff_reward =  self._endeff_reward_weight * jp.exp(-1500 * endeff_distance)
         info["endeff_distance"] = endeff_distance
 
         track_quat = self._ref_traj.body_quaternions
         quat_distance = jp.sum(self._bounded_quat_dist(data.xquat[self._body_idxs], track_quat[cur_frame,self._body_idxs]) ** 2)
-        quat_reward =  self._quat_reward_weight * jp.exp(-0.05 * quat_distance)
+        quat_reward =  self._quat_reward_weight * jp.exp(-1 * quat_distance)
         
         # observation data
         x, xd = data.x, data.xd
