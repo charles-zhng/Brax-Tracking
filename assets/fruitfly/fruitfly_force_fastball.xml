@@ -308,7 +308,7 @@
   </asset>
 
   <worldbody>
-    <body name="ball" pos="-0.05 0 -0.55">
+    <body name="ball" pos="-0.025 0 -0.55">
       <joint name="ball" pos="0 0 0" type="ball" />
       <geom name="floor" size="0.454" density="0.1" material="ballsurface"/>
     </body>
