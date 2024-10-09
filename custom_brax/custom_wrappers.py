@@ -130,6 +130,8 @@ class RenderRolloutWrapperTracking_RunSim(Wrapper):
             'reward_alive': zero,
             'x_position': zero,
             'y_position': zero,
+            'xy_ang_reward': zero,
+            'orientation': zero,
             'distance_from_origin': zero,
             'x_velocity': zero,
             'y_velocity': zero,

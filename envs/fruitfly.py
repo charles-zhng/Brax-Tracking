@@ -562,7 +562,7 @@ class Fruitfly_Run(PipelineEnv):
         site_names: List[str],
         scale_factor: float,
         clip_length: int,
-        mocap_hz: int = 200,
+        mocap_hz: int = 250,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_free.xml",
         ref_len: int = 5,
         obs_noise: float = 0.05,
@@ -629,7 +629,7 @@ class Fruitfly_Run(PipelineEnv):
         )
 
         super().__init__(sys, **kwargs)
-        self._dt = 0.002  # this environment is 500 fps
+        # self._dt = 0.002  # this environment is 500 fps
         
         self._obs_noise = obs_noise
         self._reset_noise_scale = reset_noise_scale
@@ -783,7 +783,7 @@ class Fruitfly_Run(PipelineEnv):
         cur_frame = (
             info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
         ) % self._clip_len
-        
+            
         track_joints = self._ref_traj.joints
         joint_distance = jp.sum((data.qpos[self._joint_idxs] - track_joints[cur_frame,self._joint_idxs])** 2)
         # joint_reward = self._joint_reward_weight * jp.exp(-0.1 * joint_distance)
@@ -944,7 +944,7 @@ class Fruitfly_Run(PipelineEnv):
         """Returns factorized reward terms."""
         if self._inference_mode:
             return (1,)
-        step = round(data.time / self._dt)
+        step = round(data.time / self.dt)
         walker_ft = self._get_walker_features(data, self._joint_idxs,
                                         self._site_idxs)
         reference_ft = self._get_reference_features(self._ref_traj, step)
@@ -1170,6 +1170,7 @@ class FlyRunSim(PipelineEnv):
         ctrl_cost_weight=0.01,
         forward_reward_weight=1.25,
         ang_vel_xy_weight=-0.05,
+        orientation_weight=-1.0,
         healthy_reward=5.0,
         healthy_z_range=(-0.05, 0.1),
         physics_steps_per_control_step=10,
@@ -1222,6 +1223,7 @@ class FlyRunSim(PipelineEnv):
         self._inference_mode = inference_mode
         self._forward_reward_weight = forward_reward_weight
         self._ang_vel_xy_weight = ang_vel_xy_weight
+        self._orientation_weight = orientation_weight
         self._ctrl_cost_weight = ctrl_cost_weight
         self._healthy_reward = healthy_reward
         self._healthy_z_range = healthy_z_range
@@ -1253,6 +1255,7 @@ class FlyRunSim(PipelineEnv):
             'x_position': zero,
             'y_position': zero,
             'xy_ang_reward': zero,
+            'orientation': zero,
             'distance_from_origin': zero,
             'x_velocity': zero,
             'y_velocity': zero,
@@ -1281,8 +1284,9 @@ class FlyRunSim(PipelineEnv):
         
         x, xd = data.x, data.xd
         xy_ang_reward = self._ang_vel_xy_weight * self._reward_ang_vel_xy(xd)
+        oreintation_reward = self._orientation_weight * self._reward_orientation(x)
         obs = self._get_obs(data, action)
-        reward = forward_reward + healthy_reward + xy_ang_reward - ctrl_cost 
+        reward = forward_reward + healthy_reward + xy_ang_reward + oreintation_reward - ctrl_cost 
         done = 1.0 - is_healthy if self._terminate_when_unhealthy else 0.0
         
         # Handle nans during sim by resetting env
@@ -1301,6 +1305,7 @@ class FlyRunSim(PipelineEnv):
             reward_quadctrl=-ctrl_cost,
             reward_alive=healthy_reward,
             xy_ang_reward =xy_ang_reward,
+            orientation = oreintation_reward,
             x_position=com_after[0],
             y_position=com_after[1],
             distance_from_origin=jp.linalg.norm(com_after),
@@ -1313,8 +1318,7 @@ class FlyRunSim(PipelineEnv):
         )
 
     def _get_obs(
-        self, data: mjx.Data, action: jp.ndarray
-    ) -> jp.ndarray:
+        self, data: mjx.Data, action: jp.ndarray) -> jp.ndarray:
         """Observes fly body position, velocities, and angles."""
         position = data.qpos
         # external_contact_forces are excluded
@@ -1329,6 +1333,12 @@ class FlyRunSim(PipelineEnv):
     def _reward_ang_vel_xy(self, xd: Motion) -> jax.Array:
         # Penalize xy axes base angular velocity
         return jp.sum(jp.square(xd.ang[0, :2]))
+    
+    def _reward_orientation(self, x: Transform) -> jax.Array:
+        # Penalize non flat base orientation
+        up = jp.array([0.0, 0.0, 1.0])
+        rot_up = brax_math.rotate(up, x.rot[0])
+        return jp.sum(jp.square(rot_up[:2]))
     
     def render(
         self,
