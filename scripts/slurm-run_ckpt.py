@@ -50,5 +50,5 @@ if __name__ == "__main__":
 
 ##### Saving command ######
 #  python scripts/slurm-run_bbrunton.py paths=hyak train=train_fly_run dataset=fly_run train.note=hyak train.num_envs=1024 gpu=0
-#  python scripts/slurm-run_ckpt.py paths=hyak train.note=hyak_ckpt train=train_fly_run dataset=fly_run train.num_envs=1024 +num_gpus=4
-#  python scripts/slurm-run_ckpt.py paths=hyak train.note=hyak_ckpt train=train_fly dataset=fly train.num_envs=1024 +num_gpus=8
+#  python scripts/slurm-run_ckpt.py paths=hyak train.note=hyak_ckpt train=train_fly_run dataset=fly_run train.num_envs=1024 num_gpus=4
+#  python scripts/slurm-run_ckpt.py paths=hyak train.note=hyak_ckpt train=train_fly dataset=fly train.num_envs=1024 num_gpus=8

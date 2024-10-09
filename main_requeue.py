@@ -211,6 +211,7 @@ def main(cfg: DictConfig) -> None:
 
 
         OmegaConf.save(cfg, cfg.paths.log_dir / "run_config.yaml")
+        print(OmegaConf.to_yaml(cfg))
         make_inference_fn, params, _ = train_fn(
             environment=env, progress_fn=wandb_progress, policy_params_fn=policy_params_fn
         )
