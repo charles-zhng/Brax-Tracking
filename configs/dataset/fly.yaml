@@ -24,6 +24,7 @@ env_args:
   angvel_reward_weight: 2.0
   bodypos_reward_weight: 1.0
   endeff_reward_weight: 1.0
+  termination_weight: -1.0
   joint_scaling: 0.05
   angvel_scaling: 0.05
   bodypos_scaling: 0.5

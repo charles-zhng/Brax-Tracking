@@ -46,6 +46,7 @@ class Fruitfly_Tethered(PipelineEnv):
         angvel_reward_weight=1.0,
         bodypos_reward_weight=1.0,
         endeff_reward_weight=1.0,
+        termination_weight=-1.0,
         joint_scaling=0.05,
         angvel_scaling=5e-3,
         bodypos_scaling=0.5,
@@ -149,6 +150,7 @@ class Fruitfly_Tethered(PipelineEnv):
         self._healthy_reward = healthy_reward
         self._healthy_z_range = healthy_z_range
         self._reset_noise_scale = reset_noise_scale
+        self._termination_weight = termination_weight
         self._terminate_when_unhealthy = terminate_when_unhealthy
 
     def reset(self, rng) -> State:
@@ -217,19 +219,7 @@ class Fruitfly_Tethered(PipelineEnv):
             info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
         ) % self._clip_len
         info["current_frame"] += 1
-        # if self._ref_traj.position is not None:
-        #     track_pos = self._ref_traj.position
-        #     pos_distance = data.qpos[:3] - track_pos[cur_frame]
-        #     pos_reward = self._pos_reward_weight * jp.exp(
-        #         -400 * jp.sum(pos_distance**2)
-        #     )
-        #     track_quat = self._ref_traj.quaternion
-        #     quat_distance = jp.sum(
-        #         self._bounded_quat_dist(data.qpos[3:7], track_quat[cur_frame]) ** 2
-        #     )
-        #     quat_reward = self._quat_reward_weight * jp.exp(-4.0 * quat_distance)
-        # else:
-        
+
         pos_distance = 0.0
         pos_reward = 0.0
             
@@ -291,7 +281,7 @@ class Fruitfly_Tethered(PipelineEnv):
 
         done = 1.0 - is_healthy  if self._terminate_when_unhealthy else 0.0 
         done = jp.max(jp.array([done, bad_pose, bad_quat]))
-        termination_reward = healthy_reward * (done & (cur_frame<self._clip_len))
+        termination_reward =  self._termination_weight * (done & (cur_frame<self._clip_len))
         reward = (
             pos_reward
             + joint_reward
@@ -1155,8 +1145,6 @@ class Fruitfly_Run(PipelineEnv):
             height=height,
             scene_option=scene_option,
         )
-
-
 
 
 class FlyRunSim(PipelineEnv):
