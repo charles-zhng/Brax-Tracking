@@ -31,4 +31,4 @@ state_metric_list:
   - action_rate
   - stand_still
   - termination
-info_metic_list: None
+info_metric_list: []

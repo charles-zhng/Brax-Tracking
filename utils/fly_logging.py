@@ -29,7 +29,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
         )
         
     # Log the info for the rollout
-    if cfg.train.info_metric_list is not None:
+    if len(cfg.train.info_metric_list)>0: # Skip if no info metrics are defined
         for info_metric in cfg.train.info_metric_list:
             info_metric_values = [state.info[info_metric] for state in rollout]
             table = wandb.Table(
