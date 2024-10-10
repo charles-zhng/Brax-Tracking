@@ -21,3 +21,18 @@ unroll_length: 16
 discounting: 0.99
 mlp_policy_layer_sizes: [512, 512]
 restore_checkpoint: ''
+state_metric_list: 
+  - pos_reward
+  - quat_reward
+  - joint_reward
+  - angvel_reward
+  - bodypos_reward
+  - endeff_reward
+  - reward_ctrl
+  - healthy_reward
+info_metric_list: 
+  - joint_distance
+  - quat_distance
+  - angvel_distance
+  - endeff_distance
+  - current_frame

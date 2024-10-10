@@ -21,3 +21,14 @@ unroll_length: 16
 discounting: 0.99
 mlp_policy_layer_sizes: [512, 512]
 restore_checkpoint: ''
+state_metric_list: 
+  - total_dist
+  - tracking_lin_vel
+  - ang_vel_xy
+  - lin_vel_z
+  - orientation
+  - torques
+  - action_rate
+  - stand_still
+  - termination
+info_metic_list: None

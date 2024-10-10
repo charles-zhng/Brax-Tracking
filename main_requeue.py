@@ -28,7 +28,7 @@ from preprocessing.preprocess import process_clip_to_train
 from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run, FlyRunSim, FlyStand
 from utils.utils import *
 from utils.fly_logging import log_eval_rollout
-from utils.fly_logging_run import log_eval_rollout_run
+from utils.fly_logging_run import log_eval_rollout_run, log_eval_rollout_stand
 from utils.fly_logging_run_sim import log_eval_rollout_run_sim
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -204,13 +204,7 @@ def main(cfg: DictConfig) -> None:
                 rollout.append(state)
             
             ##### Log the rollout to wandb #####
-            if cfg.dataset.dname == "fly_run":
-                log_eval_rollout_run(cfg,rollout,state,env,reference_clip,model_path,num_steps)
-            elif cfg.dataset.dname == 'fly_run_sim':
-                log_eval_rollout_run_sim(cfg, rollout, state, env, model_path, num_steps)
-            else:
-                log_eval_rollout(cfg,rollout,state,env,reference_clip,model_path,num_steps)
-        
+            log_eval_rollout(cfg,rollout,state,env,reference_clip,model_path,num_steps)
 
 
         OmegaConf.save(cfg, cfg.paths.log_dir / "run_config.yaml")
