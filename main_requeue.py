@@ -119,9 +119,10 @@ def main(cfg: DictConfig) -> None:
 
         # Episode length is equal to (clip length - random init range - traj length) * steps per cur frame
         # Will work on not hardcoding these values later
-        episode_length = (
-            env_args.clip_length - 50 - env_cfg.ref_traj_length
-        ) * env_args.physics_steps_per_control_step
+        # episode_length = (
+        #     env_args.clip_length - 50 - env_cfg.ref_traj_length
+        # ) * env_args.physics_steps_per_control_step
+        episode_length = (env_args.clip_length - 50 - env_cfg.ref_traj_length) * env._steps_for_cur_frame
         print(f"episode_length {episode_length}")
 
         train_fn = functools.partial(
@@ -196,7 +197,7 @@ def main(cfg: DictConfig) -> None:
             state = jit_reset(reset_rng)
 
             rollout = [state]
-            for i in range(env_args["clip_length"]):
+            for i in range(env_args["clip_length"]*rollout_env._steps_for_cur_frame):
                 _, act_rng = jax.random.split(act_rng)
                 obs = state.obs
                 ctrl, extras = jit_inference_fn(obs, act_rng)

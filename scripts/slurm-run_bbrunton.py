@@ -17,24 +17,25 @@ def submit(cfg: DictConfig) -> None:
     """Submit job to cluster."""
     script = f"""#!/bin/bash
 #SBATCH --job-name=Fruitfly    
-#SBATCH --partition=gpu-l40s 
+#SBATCH --partition=gpu-l40s
 #SBATCH --account=portia
 #SBATCH --time=2-00:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
-#SBATCH --gpus=1
+#SBATCH --gpus={cfg.num_gpus}
 #SBATCH --mem=128G
 #SBATCH --verbose  
 #SBATCH -o ./OutFiles/slurm-%A_%a.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=eabe@uw.edu
-module load cuda/12.2.2
-source ~/.bashrc
+#SBATCH --exclude=g3090,g3107
+module load cuda/12.4.1
 set -x
+source ~/.bashrc
 nvidia-smi
 conda activate stac-mjx-env
-CUDA_VISIBLE_DEVICES={cfg.gpu} python -u main.py paths=hyak train={cfg.train.name} dataset={cfg.dataset.dname} train.note=hyak train.num_envs={cfg.train.num_envs}
+python -u main_requeue.py paths=hyak train.note={cfg.train.note} version=ckpt train={cfg.train.name} dataset={cfg.dataset.dname} train.num_envs={cfg.num_gpus*cfg.train.num_envs} num_gpus={cfg.num_gpus} run_id=$SLURM_JOB_ID 
             """
     print(f"Submitting job")
     print(script)
@@ -46,5 +47,7 @@ if __name__ == "__main__":
     submit()
 
 
+
 ##### Saving command ######
 #  python scripts/slurm-run_bbrunton.py paths=hyak train=train_fly_run dataset=fly_run train.note=hyak train.num_envs=1024 gpu=0
+# python scripts/slurm-run_bbrunton.py paths=hyak train.note=hyak train=train_fly_run_sim dataset=fly_run_sim train.num_envs=1024 num_gpus=2
