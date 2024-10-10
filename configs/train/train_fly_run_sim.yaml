@@ -20,3 +20,4 @@ action_repeat: 1
 unroll_length: 16
 discounting: 0.99
 mlp_policy_layer_sizes: [512, 512]
+restore_checkpoint: ''

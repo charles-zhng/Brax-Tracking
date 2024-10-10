@@ -6,12 +6,7 @@ dataset_name: ${dataset.name}
 version: ''
 seed: 42
 num_gpus: ''
-
-# model: ${dataset.model}
-
-# train: ${train.train}
-
-checkpoint: ''
+run_id: ''
 
 # set default task and default training config based on dataset
 defaults:
