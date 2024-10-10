@@ -173,6 +173,8 @@ def main(cfg: DictConfig) -> None:
             rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Run(env)
         elif cfg.dataset.dname == 'fly_run_sim':
             rollout_env = custom_wrappers.RenderRolloutWrapperTracking_RunSim(env)
+        elif cfg.dataset.dname == 'fly_stand':
+            rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Stand(env)
         else:
             rollout_env = custom_wrappers.RenderRolloutWrapperTracking(env)
         # define the jit reset/step functions
@@ -217,7 +219,7 @@ def main(cfg: DictConfig) -> None:
             environment=env, progress_fn=wandb_progress, policy_params_fn=policy_params_fn
         )
 
-        final_save_path = f"{model_path}"/f'brax_ppo_{cfg.dataset.name}_run_finished'
+        final_save_path = Path(f"{model_path}")/f'brax_ppo_{cfg.dataset.name}_run_finished'
         model.save_params(final_save_path, params)
         print(f'Run finished. Model saved to {final_save_path}')
     

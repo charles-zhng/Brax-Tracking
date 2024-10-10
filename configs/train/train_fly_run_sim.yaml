@@ -4,7 +4,7 @@ gpu: ${resolve_default:1,${..gpu}}
 wandb_project: "eabe_debug"
 env_name: fly_run_sim
 algo_name: ppo
-task_name: track
+task_name: fly_run_sim
 note: 
 num_envs: 1024
 num_timesteps: 5_000_000_000

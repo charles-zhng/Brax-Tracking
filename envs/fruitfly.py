@@ -289,6 +289,9 @@ class Fruitfly_Tethered(PipelineEnv):
         # }
         # reward = sum(rewards.values())
 
+        done = 1.0 - is_healthy  if self._terminate_when_unhealthy else 0.0 
+        done = jp.max(jp.array([done, bad_pose, bad_quat]))
+        termination_reward = healthy_reward * (done & (cur_frame<self._clip_len))
         reward = (
             pos_reward
             + joint_reward
@@ -296,12 +299,9 @@ class Fruitfly_Tethered(PipelineEnv):
             + angvel_reward
             + bodypos_reward
             + endeff_reward
-            + healthy_reward
+            + termination_reward
             - ctrl_cost
         )
-        done = 1.0 - is_healthy  if self._terminate_when_unhealthy else 0.0 
-        done = jp.max(jp.array([done, bad_pose, bad_quat]))
-
         # Handle nans during sim by resetting env
         reward = jp.nan_to_num(reward)
         obs = jp.nan_to_num(obs)
@@ -321,8 +321,7 @@ class Fruitfly_Tethered(PipelineEnv):
             bodypos_reward=bodypos_reward,
             endeff_reward=endeff_reward,
             reward_ctrl=-ctrl_cost,
-            healthy_reward=healthy_reward,
-            # too_far=too_far,
+            healthy_reward=termination_reward,
             bad_pose=bad_pose,
             bad_quat=bad_quat,
             fall=1 - is_healthy,
@@ -815,7 +814,7 @@ class Fruitfly_Run(PipelineEnv):
         
         # observation data
         x, xd = data.x, data.xd
-        obs = self._get_obs(data, state.info, state.obs)
+        obs = self._get_obs(data, info, state.obs)
         joint_angles = data.q[7:]
         joint_vel = data.qd[1:]  ##### need to restrict to only legs
 
@@ -834,14 +833,14 @@ class Fruitfly_Run(PipelineEnv):
         pos_reward = 0.0 #rewards_temp[0]
         # joint_reward = rewards_temp[1]
         # quat_reward = rewards_temp[2]
-        tracking_lin_vel = self._tracking_lin_vel_weight*self._reward_tracking_lin_vel(state.info["command"], x, xd)
+        tracking_lin_vel = self._tracking_lin_vel_weight*self._reward_tracking_lin_vel(info["command"], x, xd)
         ang_vel_xy = self._lin_vel_z_weight * self._reward_ang_vel_xy(xd)
         lin_vel_z = self._ang_vel_xy_weight * self._reward_lin_vel_z(xd)
         orientation = self._orientation_weight*self._reward_orientation(x)
         torques = self._torques_weight*self._reward_torques(data.qfrc_actuator)
-        action_rate = self._action_rate_weight*self._reward_action_rate(action, state.info["last_act"])
-        stand_still = self._stand_still_weight*self._reward_stand_still(state.info["command"],joint_angles,)
-        termination = self._termination_weight*self._reward_termination(done, state.info["step"])
+        action_rate = self._action_rate_weight*self._reward_action_rate(action, info["last_act"])
+        stand_still = self._stand_still_weight*self._reward_stand_still(info["command"],joint_angles,)
+        termination = self._termination_weight*self._reward_termination(done, info["step"])
         rewards = {
             'pos_reward': pos_reward,
             'joint_reward': joint_reward,
@@ -866,21 +865,21 @@ class Fruitfly_Run(PipelineEnv):
         obs = jp.nan_to_num(obs)
         
         # state management
-        state.info["last_act"] = action
-        state.info["last_vel"] = joint_vel
-        state.info["step"] += 1
-        state.info["rng"] = rng
+        info["last_act"] = action
+        info["last_vel"] = joint_vel
+        info["step"] += 1
+        info["rng"] = rng
 
         # sample new command if more than 500 timesteps achieved
-        state.info["command"] = jp.where(
-            state.info["step"] > self._clip_len,
+        info["command"] = jp.where(
+            info["step"] > self._clip_len,
             self.sample_command(cmd_rng),
-            state.info["command"],
+            info["command"],
         )
         
         # reset the step counter when done
-        state.info["step"] = jp.where(
-            done | (state.info["step"] > self._clip_len), 0, state.info["step"]
+        info["step"] = jp.where(
+            done | (info["step"] > self._clip_len), 0, info["step"]
         )
 
         # log total displacement as a proxy metric
@@ -906,7 +905,7 @@ class Fruitfly_Run(PipelineEnv):
 
         
         state = state.replace(
-            pipeline_state=data, obs=obs, reward=reward, done=done
+            pipeline_state=data, obs=obs, reward=reward, done=done, info=info
         )
         return state
 
