@@ -17,7 +17,7 @@ def submit(cfg: DictConfig) -> None:
     """Submit job to cluster."""
     script = f"""#!/bin/bash
 #SBATCH --job-name=Fruitfly    
-#SBATCH --partition=ckpt-g2 
+#SBATCH --partition=ckpt-g2
 #SBATCH --account=portia
 #SBATCH --time=2-00:00:00
 #SBATCH --nodes=1
