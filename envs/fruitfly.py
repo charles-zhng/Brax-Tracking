@@ -1431,7 +1431,7 @@ class FlyStand(PipelineEnv):
         )
 
         self._ref_traj = clip
-        
+        self._default_pose = self.sys.qpos0[7:]
         self._thorax_idx = mujoco.mj_name2id(
             mj_model, mujoco.mju_str2Type("body"), center_of_mass
         )
@@ -1522,8 +1522,15 @@ class FlyStand(PipelineEnv):
 
         # observation data
         x, xd = data.x, data.xd
-        obs = self._get_obs(data, state.info, state.obs)
+        obs = self._get_obs(data, state.info)
         joint_angles = data.q[7:]
+        
+        # done if joint limits are reached or robot is falling
+        min_z, max_z = self._healthy_z_range
+        up = jp.array([0.0, 0.0, 1.0])
+        done = jp.dot(brax_math.rotate(up, x.rot[self._thorax_idx]), up) < 0
+        done |= data.xpos[self._thorax_idx][2] < min_z
+        done |= data.xpos[self._thorax_idx][2] > max_z
 
         tracking_lin_vel = self._tracking_lin_vel_weight*self._reward_tracking_lin_vel(state.info["command"], x, xd)
         ang_vel_xy = self._lin_vel_z_weight * self._reward_ang_vel_xy(xd)
@@ -1533,12 +1540,6 @@ class FlyStand(PipelineEnv):
         action_rate = self._action_rate_weight*self._reward_action_rate(action, state.info["last_act"])
         stand_still = self._stand_still_weight*self._reward_stand_still(state.info["command"],joint_angles,)
         termination = self._termination_weight*self._reward_termination(done, state.info["step"])
-        # done if joint limits are reached or robot is falling
-        min_z, max_z = self._healthy_z_range
-        up = jp.array([0.0, 0.0, 1.0])
-        done = jp.dot(brax_math.rotate(up, x.rot[self._thorax_idx]), up) < 0
-        done |= data.xpos[self._thorax_idx][2] < min_z
-        done |= data.xpos[self._thorax_idx][2] > max_z
 
         rewards = {
             "tracking_lin_vel": tracking_lin_vel,
@@ -1563,6 +1564,10 @@ class FlyStand(PipelineEnv):
         num_nans = jp.sum(jp.isnan(flattened_vals))
         nan = jp.where(num_nans > 0, 1.0, 0.0)
         done = jp.max(jp.array([nan, done]))
+                # state management
+                
+        state.info["last_act"] = action
+        state.info["step"] += 1
         
         state.metrics.update(
             total_dist = brax_math.normalize(x.pos[self._thorax_idx])[1],

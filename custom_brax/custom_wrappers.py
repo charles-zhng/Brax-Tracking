@@ -148,7 +148,7 @@ class RenderRolloutWrapperTracking_Stand(Wrapper):
         rng, rng1, rng2 = jax.random.split(rng, 3)
         rng, key = jax.random.split(rng)
 
-        pipeline_state = self.pipeline_init(self._init_q, jp.zeros(self._nv))
+        pipeline_state = self.pipeline_init(self.sys.qpos0, jp.zeros(self.sys.nv))
 
         info = {
             "rng": rng,
