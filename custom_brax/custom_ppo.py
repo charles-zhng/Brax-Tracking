@@ -476,7 +476,7 @@ def train(
             (training_state, env_state, training_metrics) = training_epoch_with_timing(
                 training_state, env_state, epoch_keys
             )
-            current_step = (_unpmap(training_state.env_steps)).astype(jnp.int64)
+            current_step = int(_unpmap(training_state.env_steps))
 
             key_envs = jax.vmap(
                 lambda x, s: jax.random.split(x[0], s), in_axes=(0, None)
@@ -501,7 +501,7 @@ def train(
 
     total_steps = current_step
     assert total_steps >= num_timesteps
-
+    
     # If there was no mistakes the training_state should still be identical on all
     # devices.
     pmap.assert_is_replicated(training_state)

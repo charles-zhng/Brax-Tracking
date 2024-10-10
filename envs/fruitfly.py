@@ -572,7 +572,7 @@ class Fruitfly_Run(PipelineEnv):
         ctrl_cost_weight=0.01,
         pos_reward_weight=0.0,
         quat_reward_weight=0.0,
-        joint_reward_weight=1.0,
+        joint_reward_weight=10.0,
         angvel_reward_weight=1.0,
         bodypos_reward_weight=1.0,
         endeff_reward_weight=1.0,
@@ -581,7 +581,7 @@ class Fruitfly_Run(PipelineEnv):
         bodypos_scaling=0.5,
         endeff_scaling=5.0,
         quat_scaling=0.002,
-        tracking_lin_vel_weight=1,
+        tracking_lin_vel_weight=1.0,
         lin_vel_z_weight=-2.0,
         ang_vel_xy_weight=-0.05,
         orientation_weight=-1.0,
@@ -827,7 +827,7 @@ class Fruitfly_Run(PipelineEnv):
         done |= data.xpos[self._thorax_idx][2] < min_z
         done |= data.xpos[self._thorax_idx][2] > max_z
         done |= joint_distance > self._bad_pose_dist
-        done |= joint_distance > self._bad_quat_dist
+        done |= quat_distance > self._bad_quat_dist
         
         # reward
         # rewards_temp = self.get_reward_factors(data)

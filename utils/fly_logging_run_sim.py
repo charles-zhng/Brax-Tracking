@@ -17,6 +17,8 @@ def log_eval_rollout_run_sim(cfg, rollout, state, env, model_path, num_steps):
         'reward_alive',
         'x_position',
         'y_position',
+        'xy_ang_reward',
+        'orientation',
         'distance_from_origin',
         'x_velocity',
         'y_velocity',
