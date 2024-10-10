@@ -14,7 +14,7 @@ from utils import quaternions
 from typing import List
 import mujoco
 from mujoco import mjx
-
+from utils import io_dict_to_hdf5 as ioh5
 import numpy as np
 
 import os
@@ -706,7 +706,7 @@ class Fruitfly_Run(PipelineEnv):
         self._terminate_when_unhealthy = terminate_when_unhealthy
 
     def sample_command(self, rng: jax.Array) -> jax.Array:
-        lin_vel_x = [0.5, 1.0]  # min max [m/s]
+        lin_vel_x = [0.75, 2.0]  # min max [m/s]
         # lin_vel_y = [-0.8, 0.8]  # min max [m/s]
         # ang_vel_yaw = [-0.7, 0.7]  # min max [rad/s]
 
@@ -817,7 +817,7 @@ class Fruitfly_Run(PipelineEnv):
         x, xd = data.x, data.xd
         obs = self._get_obs(data, state.info, state.obs)
         joint_angles = data.q[7:]
-        joint_vel = data.qd  ##### need to restrict to only legs
+        joint_vel = data.qd[1:]  ##### need to restrict to only legs
 
 
         # done if joint limits are reached or robot is falling
@@ -1356,3 +1356,333 @@ class FlyRunSim(PipelineEnv):
             height=height,
             scene_option=scene_option,
         )
+
+
+
+class FlyStand(PipelineEnv):
+    def __init__(
+        self,
+        reference_clip,
+        mjcf_path: str = "./assets/fruitfly/fruitfly_force_freerun.xml",
+        clip_length: int = 250,
+        ref_path: str = "clips/0_stand.h5",
+        obs_noise: float = 0.05,
+        ctrl_cost_weight=0.01,
+        forward_reward_weight=1.25,
+        tracking_lin_vel_weight=1.0,
+        lin_vel_z_weight=-2.0,
+        ang_vel_xy_weight=-0.05,
+        orientation_weight=-1.0,
+        torques_weight=-0.0002,
+        action_rate_weight=-0.01,
+        stand_still_weight=-0.5,
+        termination_weight=-1.0,
+        healthy_reward=0.25,
+        healthy_z_range=(0.03, 0.5),
+        physics_steps_per_control_step=10,
+        reset_noise_scale=1e-3,
+        sim_timestep: float = 2e-4,
+        solver="cg",
+        iterations: int = 6,
+        ls_iterations: int = 6,
+        terminate_when_unhealthy=True,
+        free_jnt=True,
+        inference_mode=False,
+        center_of_mass='thorax',
+        **kwargs,
+    ):
+        
+        spec = mujoco.MjSpec()
+        spec.from_file(mjcf_path)
+        # thorax = spec.find_body("thorax")
+        # first_joint = thorax.first_joint()
+        # if (free_jnt == False) & (first_joint.name == "free"):
+        #     first_joint.delete()
+        mj_model = spec.compile()
+
+        mj_model.opt.solver = {
+            "cg": mujoco.mjtSolver.mjSOL_CG,
+            "newton": mujoco.mjtSolver.mjSOL_NEWTON,
+        }[solver.lower()]
+        mj_model.opt.iterations = iterations
+        mj_model.opt.ls_iterations = ls_iterations
+        mj_model.opt.timestep = sim_timestep
+        mj_model.opt.jacobian = 0
+
+        sys = mjcf_brax.load_model(mj_model)
+
+        kwargs["n_frames"] = kwargs.get("n_frames", physics_steps_per_control_step)
+        kwargs["backend"] = "mjx"
+
+        super().__init__(sys, **kwargs)
+        
+        ref_clip = ioh5.load(ref_path)
+        for key, val in ref_clip.items():
+            ref_clip[key] = jp.array(val)
+        clip = reference_clip.replace(
+            position=ref_clip['position'],
+            quaternion=ref_clip['quaternion'],
+            joints=ref_clip['joints'],
+            body_positions=ref_clip['body_positions'],
+            velocity=ref_clip['velocity'],
+            joints_velocity=ref_clip['joints_velocity'],
+            angular_velocity=ref_clip['angular_velocity'],
+            body_quaternions=ref_clip['body_quaternions'],
+        )
+
+        self._ref_traj = clip
+        
+        self._thorax_idx = mujoco.mj_name2id(
+            mj_model, mujoco.mju_str2Type("body"), center_of_mass
+        )
+        self._nv = sys.nv
+        self._nq = sys.nq
+        self._nu = sys.nu
+        self._ref_traj = reference_clip
+        self._obs_noise = obs_noise
+        self._reset_noise_scale = reset_noise_scale
+        self._sim_timestep = sim_timestep
+        self._free_jnt = free_jnt
+        self._inference_mode = inference_mode
+        self._forward_reward_weight = forward_reward_weight        
+        self._tracking_lin_vel_weight = tracking_lin_vel_weight
+        self._lin_vel_z_weight = lin_vel_z_weight
+        self._ang_vel_xy_weight = ang_vel_xy_weight
+        self._orientation_weight = orientation_weight
+        self._torques_weight = torques_weight
+        self._action_rate_weight = action_rate_weight
+        self._stand_still_weight = stand_still_weight
+        self._termination_weight = termination_weight
+        self._ctrl_cost_weight = ctrl_cost_weight
+        self._healthy_reward = healthy_reward
+        self._healthy_z_range = healthy_z_range
+        self._reset_noise_scale = reset_noise_scale
+        self._terminate_when_unhealthy = terminate_when_unhealthy
+
+
+    def reset(self, rng: jp.ndarray) -> State:
+        """Resets the environment to an initial state."""
+        rng, rng1, rng2 = jax.random.split(rng, 3)
+        
+        info = {
+            "rng": rng,
+            "last_act": jp.zeros(self._nu),
+            "last_vel": jp.zeros(self._nv),
+            "command": jp.zeros(3),
+            "last_contact": jp.zeros(6, dtype=bool),
+            "step": 0,
+        }
+        low, hi = -self._reset_noise_scale, self._reset_noise_scale
+        qpos = self.sys.qpos0 + jax.random.uniform(
+            rng1, (self.sys.nq,), minval=low, maxval=hi
+        )
+        qvel = jax.random.uniform(
+            rng2, (self.sys.nv,), minval=low, maxval=hi
+        )
+
+        data = self.pipeline_init(qpos, qvel)
+
+        obs = self._get_obs(data, jp.zeros(self.sys.nu))
+        reward, done, zero = jp.zeros(3)
+
+        metrics = {
+            "total_dist": zero,
+            "tracking_lin_vel": zero,
+            'ang_vel_xy': zero,
+            'lin_vel_z': zero,
+            "orientation": zero,
+            "torques": zero,
+            "action_rate": zero,
+            "stand_still": zero,
+            "termination": zero,
+        }
+        
+        return State(data, obs, reward, done, metrics, info)
+
+    def step(self, state: State, action: jp.ndarray) -> State:
+        """Runs one timestep of the environment's dynamics."""
+        data0 = state.pipeline_state
+        data = self.pipeline_step(data0, action)
+
+        com_before = data0.subtree_com[1]
+        com_after = data.subtree_com[1]
+        velocity = (com_after - com_before) / self.dt
+        forward_reward = self._forward_reward_weight * velocity[0]
+
+        min_z, max_z = self._healthy_z_range
+        is_healthy = jp.where(data.q[2] < min_z, 0.0, 1.0)
+        is_healthy = jp.where(data.q[2] > max_z, 0.0, is_healthy)
+        if self._terminate_when_unhealthy:
+            healthy_reward = self._healthy_reward
+        else:
+            healthy_reward = self._healthy_reward * is_healthy
+
+        ctrl_cost = self._ctrl_cost_weight * jp.sum(jp.square(action))
+        
+
+        # observation data
+        x, xd = data.x, data.xd
+        obs = self._get_obs(data, state.info, state.obs)
+        joint_angles = data.q[7:]
+
+        tracking_lin_vel = self._tracking_lin_vel_weight*self._reward_tracking_lin_vel(state.info["command"], x, xd)
+        ang_vel_xy = self._lin_vel_z_weight * self._reward_ang_vel_xy(xd)
+        lin_vel_z = self._ang_vel_xy_weight * self._reward_lin_vel_z(xd)
+        orientation = self._orientation_weight*self._reward_orientation(x)
+        torques = self._torques_weight*self._reward_torques(data.qfrc_actuator)
+        action_rate = self._action_rate_weight*self._reward_action_rate(action, state.info["last_act"])
+        stand_still = self._stand_still_weight*self._reward_stand_still(state.info["command"],joint_angles,)
+        termination = self._termination_weight*self._reward_termination(done, state.info["step"])
+        # done if joint limits are reached or robot is falling
+        min_z, max_z = self._healthy_z_range
+        up = jp.array([0.0, 0.0, 1.0])
+        done = jp.dot(brax_math.rotate(up, x.rot[self._thorax_idx]), up) < 0
+        done |= data.xpos[self._thorax_idx][2] < min_z
+        done |= data.xpos[self._thorax_idx][2] > max_z
+
+        rewards = {
+            "tracking_lin_vel": tracking_lin_vel,
+            'ang_vel_xy': ang_vel_xy,
+            'lin_vel_z': lin_vel_z,
+            "orientation": orientation,
+            "torques": torques,
+            "action_rate": action_rate,
+            "stand_still": stand_still,
+            "termination": termination,
+        }
+        
+        reward = jp.clip(sum(rewards.values()) * self.dt, 0.0, 10000.0)
+
+        # Handle nans during sim by resetting env
+        reward = jp.nan_to_num(reward)
+        obs = jp.nan_to_num(obs)
+        done = jp.float32(done)
+
+        from jax.flatten_util import ravel_pytree
+        flattened_vals, _ = ravel_pytree(data)
+        num_nans = jp.sum(jp.isnan(flattened_vals))
+        nan = jp.where(num_nans > 0, 1.0, 0.0)
+        done = jp.max(jp.array([nan, done]))
+        
+        state.metrics.update(
+            total_dist = brax_math.normalize(x.pos[self._thorax_idx])[1],
+            tracking_lin_vel = tracking_lin_vel,
+            ang_vel_xy = ang_vel_xy,
+            lin_vel_z = lin_vel_z,
+            orientation = orientation,
+            torques = torques,
+            action_rate = action_rate,
+            stand_still = stand_still,
+            termination = termination,
+        )
+
+        return state.replace(
+            pipeline_state=data, obs=obs, reward=reward, done=done
+        )
+
+    def _get_obs(
+        self, data: mjx.Data, action: jp.ndarray) -> jp.ndarray:
+        """Observes fly body position, velocities, and angles."""
+        position = data.qpos
+        # external_contact_forces are excluded
+        return jp.concatenate([
+            position,
+            data.qvel,
+            data.cinert[1:].ravel(),
+            data.cvel[1:].ravel(),
+            data.qfrc_actuator,
+        ])
+
+    def _reward_lin_vel_z(self, xd: Motion) -> jax.Array:
+        # Penalize z axis base linear velocity
+        return jp.square(xd.vel[0, 2])
+
+    def _reward_ang_vel_xy(self, xd: Motion) -> jax.Array:
+        # Penalize xy axes base angular velocity
+        return jp.sum(jp.square(xd.ang[0, :2]))
+
+    def _reward_orientation(self, x: Transform) -> jax.Array:
+        # Penalize non flat base orientation
+        up = jp.array([0.0, 0.0, 1.0])
+        rot_up = brax_math.rotate(up, x.rot[0])
+        return jp.sum(jp.square(rot_up[:2]))
+
+    def _reward_torques(self, torques: jax.Array) -> jax.Array:
+        # Penalize torques
+        return jp.sqrt(jp.sum(jp.square(torques))) + jp.sum(jp.abs(torques))
+
+    def _reward_action_rate(self, act: jax.Array, last_act: jax.Array) -> jax.Array:
+        # Penalize changes in actions
+        return jp.sum(jp.square(act - last_act))
+
+    def _reward_tracking_lin_vel(
+        self, commands: jax.Array, x: Transform, xd: Motion
+    ) -> jax.Array:
+        # Tracking of linear velocity commands (xy axes)
+        local_vel = brax_math.rotate(xd.vel[0], brax_math.quat_inv(x.rot[0]))
+        lin_vel_error = jp.sum(jp.square(commands[:2] - local_vel[:2]))
+        lin_vel_reward = jp.exp(
+            -lin_vel_error / 0.25
+        )
+        return lin_vel_reward
+
+    def _reward_tracking_ang_vel(
+        self, commands: jax.Array, x: Transform, xd: Motion
+    ) -> jax.Array:
+        # Tracking of angular velocity commands (yaw)
+        base_ang_vel = brax_math.rotate(xd.ang[0], brax_math.quat_inv(x.rot[0]))
+        ang_vel_error = jp.square(commands[2] - base_ang_vel[2])
+        return jp.exp(-ang_vel_error / 0.25)
+
+    def _reward_stand_still(
+        self,
+        commands: jax.Array,
+        joint_angles: jax.Array,
+    ) -> jax.Array:
+        # Penalize motion at zero commands
+        return jp.sum(jp.abs(joint_angles - self._default_pose)) * (
+            brax_math.normalize(commands[:2])[1] < 0.1
+        )
+        
+    def _reward_termination(self, done: jax.Array, step: jax.Array) -> jax.Array:
+        return done & (step < 1000)
+    
+    def _bounded_quat_dist(self, source: np.ndarray, target: np.ndarray) -> np.ndarray:
+        """Computes a quaternion distance limiting the difference to a max of pi/2.
+
+        This function supports an arbitrary number of batch dimensions, B.
+
+        Args:
+          source: a quaternion, shape (B, 4).
+          target: another quaternion, shape (B, 4).
+
+        Returns:
+          Quaternion distance, shape (B, 1).
+        """
+        source /= jp.linalg.norm(source, axis=-1, keepdims=True)
+        target /= jp.linalg.norm(target, axis=-1, keepdims=True)
+        # "Distance" in interval [-1, 1].
+        dist = 2 * jp.einsum("...i,...i", source, target) ** 2 - 1
+        # Clip at 1 to avoid occasional machine epsilon leak beyond 1.
+        dist = jp.minimum(1.0, dist)
+        # Divide by 2 and add an axis to ensure consistency with expected return
+        # shape and magnitude.
+        return 0.5 * jp.arccos(dist)[..., np.newaxis]
+
+    def render(
+        self,
+        trajectory: List[base.State],
+        camera: str | None = None,
+        width: int = 480,
+        height: int = 320,
+        scene_option: Any = None,
+    ) -> Sequence[np.ndarray]:
+        camera = camera or "track"
+        return super().render(
+            trajectory,
+            camera=camera,
+            width=width,
+            height=height,
+            scene_option=scene_option,
+        )
+

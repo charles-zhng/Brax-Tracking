@@ -137,3 +137,43 @@ class RenderRolloutWrapperTracking_RunSim(Wrapper):
             'y_velocity': zero,
         }
         return State(data, obs, reward, done, metrics)
+
+
+
+
+class RenderRolloutWrapperTracking_Stand(Wrapper):
+    """Always resets to 0"""
+
+    def reset(self, rng: jax.Array) -> State:
+        rng, rng1, rng2 = jax.random.split(rng, 3)
+        rng, key = jax.random.split(rng)
+
+        pipeline_state = self.pipeline_init(self._init_q, jp.zeros(self._nv))
+
+        info = {
+            "rng": rng,
+            "last_act": jp.zeros(self._nu),
+            "last_vel": jp.zeros(self._nv),
+            "command": jp.zeros(3),
+            "last_contact": jp.zeros(6, dtype=bool),
+            "step": 0,
+        }
+
+        
+        obs = self._get_obs(pipeline_state,jp.zeros(self._nu))
+        reward, done, zero = jp.zeros(3)
+        
+        metrics = {
+            "total_dist": zero,
+            "tracking_lin_vel": zero,
+            'ang_vel_xy': zero,
+            'lin_vel_z': zero,
+            "orientation": zero,
+            "torques": zero,
+            "action_rate": zero,
+            "stand_still": zero,
+            "termination": zero,
+        }
+        
+        return State(pipeline_state, obs, reward, done, metrics, info)  
+

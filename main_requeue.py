@@ -25,7 +25,7 @@ from orbax import checkpoint as ocp
 from flax.training import orbax_utils
 # from envs.rodent import RodentSingleClip
 from preprocessing.preprocess import process_clip_to_train
-from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run, FlyRunSim
+from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run, FlyRunSim, FlyStand
 from utils.utils import *
 from utils.fly_logging import log_eval_rollout
 from utils.fly_logging_run import log_eval_rollout_run
@@ -45,6 +45,7 @@ os.environ["XLA_FLAGS"] = (
 envs.register_environment("fly_single_clip", Fruitfly_Tethered)
 envs.register_environment("fly_run", Fruitfly_Run)
 envs.register_environment("fly_run_sim", FlyRunSim)
+envs.register_environment("fly_stand", FlyStand)
 
 # Global Boolean variable that indicates that a signal has been received
 interrupted = False
