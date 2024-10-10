@@ -281,7 +281,7 @@ class Fruitfly_Tethered(PipelineEnv):
 
         done = 1.0 - is_healthy  if self._terminate_when_unhealthy else 0.0 
         done = jp.max(jp.array([done, bad_pose, bad_quat]))
-        termination_reward =  self._termination_weight * (done & (cur_frame<self._clip_len))
+        termination_reward =  self._termination_weight * jp.float32((done>0) & (cur_frame<self._clip_len))
         reward = (
             pos_reward
             + joint_reward
@@ -721,7 +721,7 @@ class Fruitfly_Run(PipelineEnv):
             "rng": rng,
             "start_frame": 0,
             "last_act": jp.zeros(self._nu),
-            "last_vel": jp.zeros(self._nv),
+            "last_vel": jp.zeros(self._nv - 1),
             "command": self.sample_command(key),
             "last_contact": jp.zeros(6, dtype=bool),
             "step": 0,
