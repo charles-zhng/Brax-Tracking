@@ -737,6 +737,7 @@ class Fruitfly_Freejnt(PipelineEnv):
             "start_frame": start_frame,
             "summed_pos_distance": 0.0,
             "current_frame": start_frame,
+            'steps_taken_cur_frame': 0.0,
             "pos_distance":0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
@@ -785,12 +786,19 @@ class Fruitfly_Freejnt(PipelineEnv):
         data = self.pipeline_step(data0, action)
 
         info = state.info.copy()
-
+        info["steps_taken_cur_frame"] += 1
+        info["cur_frame"] += jp.where(
+            info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 1, 0
+        )
+        info["steps_taken_cur_frame"] *= jp.where(
+            info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 0, 1
+        )
+        cur_frame = info['cur_fram']
         # Logic for getting current frame aligned with simulation time
-        cur_frame = (
-            info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
-        ) % self._clip_len
-        info["current_frame"] += 1
+        # cur_frame = (
+        #     info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
+        # ) % self._clip_len
+        # info["current_frame"] += 1
         
         ##### Position of the COM #####
         pos_distance = jp.sum((data.qpos[:3] - self._ref_traj.position[cur_frame]).flatten()**2)
