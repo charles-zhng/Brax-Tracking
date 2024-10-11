@@ -8,6 +8,8 @@ seed: 42
 num_gpus: ''
 run_id: ''
 
+# train: train_${dataset.dname}
+
 # set default task and default training config based on dataset
 defaults:
   - _self_

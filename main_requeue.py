@@ -28,8 +28,6 @@ from preprocessing.preprocess import process_clip_to_train
 from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run, FlyRunSim, FlyStand, Fruitfly_Freejnt
 from utils.utils import *
 from utils.fly_logging import log_eval_rollout
-from utils.fly_logging_run import log_eval_rollout_run, log_eval_rollout_stand
-from utils.fly_logging_run_sim import log_eval_rollout_run_sim
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
