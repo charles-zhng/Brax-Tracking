@@ -7,10 +7,14 @@ class RenderRolloutWrapperTracking(Wrapper):
     """Always resets to 0"""
 
     def reset(self, rng: jax.Array) -> State:
-        rng, rng1, rng2 = jax.random.split(rng, 3)
+        rng, rng1, rng2, rng_pos = jax.random.split(rng, 4)
+
+        start_frame = jax.random.randint(rng, (), 0, 44)
+
         info = {
-            "start_frame": 0,
-            "current_frame": 0,
+            "start_frame": start_frame,
+            "summed_pos_distance": 0.0,
+            "current_frame": start_frame,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
             "angvel_distance": 0.0,
@@ -21,20 +25,20 @@ class RenderRolloutWrapperTracking(Wrapper):
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
         # Add pos (without z height)
-        init_q = self.sys.qpos0
-        init_q = init_q.at[self._joint_idxs].set(self._ref_traj.joints[0,self._joint_idxs])
-        new_qpos = jp.array(init_q)
+        qpos_with_pos = jp.array(self.sys.qpos0).at[:3].set(self._ref_traj.position[start_frame])
 
         # Add quat
-        # new_qpos = qpos_with_pos.at[3:7].set(self._track_quat[0])
+        new_qpos = qpos_with_pos.at[3:7].set(self._ref_traj.quaternion[start_frame])
 
         # Add noise
-        qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
+        qpos = new_qpos + jax.random.uniform(
+            rng1, (self.sys.nq,), minval=low, maxval=hi
+        )
         qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
 
         data = self.pipeline_init(qpos, qvel)
 
-        obs = self._get_obs(data, 0)
+        obs = self._get_obs(data, start_frame)
         reward, done, zero = jp.zeros(3)
         metrics = {
             "pos_reward": zero,

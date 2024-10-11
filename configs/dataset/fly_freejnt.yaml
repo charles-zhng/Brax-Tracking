@@ -1,33 +1,41 @@
 name: Flybody
-dname: fly_freejnt
+dname: fly_freejnt_clip
 camera: 1
 rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_pair.xml
-stac_path: ${paths.data_dir}/transform_mocap_fly_freejnt.p
+stac_path: ${paths.data_dir}/transform_tethered.p
 clip_idx: 0
-clip_length: 601
-ref_traj_length: 15
+ref_traj_length: 5
 env_args:
-  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" # add logic from vnl
-  scale_factor: 1 # add logic from vnl
+  clip_length: 601
+  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" 
+  scale_factor: 1 
+  sim_timestep: 2e-4
   solver: cg
-  iterations: 6
-  ls_iterations: 6
-  torque_actuators: False
-  physics_steps_per_control_step: 10
+  iterations: 12
+  ls_iterations: 12
+  physics_steps_per_control_step: 5
   too_far_dist: 0.1
-  bad_pose_dist: 1000.0 # 60.0
-  bad_quat_dist: 1000.0 #1.25
-  ctrl_cost_weight: 0.01
-  pos_reward_weight: 0
+  bad_pose_dist: 20.0 # 60.0
+  bad_quat_dist: 1.0 #1.25
+  ctrl_cost_weight: 0.02
+  pos_reward_weight: 1.0
   quat_reward_weight: 1.0
-  joint_reward_weight: 50.0
+  joint_reward_weight: 1.0
   angvel_reward_weight: 0.0
-  bodypos_reward_weight: 1.0
+  bodypos_reward_weight: 0.0
   endeff_reward_weight: 1.0
-  healthy_reward: 0.25
+  termination_weight: -1.0
+  pos_scaling: 400.0
+  joint_scaling: 0.05
+  angvel_scaling: 0.05
+  bodypos_scaling: 4.0
+  endeff_scaling: 5.0
+  quat_scaling: 0.5
+  healthy_reward: 5.0
   healthy_z_range: [-0.05, 0.1]
   terminate_when_unhealthy: True
   free_jnt: True
+  inference_mode: False
   end_eff_names:
     - claw_T1_left
     - claw_T1_right
@@ -43,25 +51,6 @@ env_args:
     - tarsus_T3_left
     - tarsus_T3_right
   body_names:
-    - thorax
-    - head
-    - rostrum
-    - haustellum
-    - labrum_left
-    - labrum_right
-    - antenna_left
-    - antenna_right
-    - wing_left
-    - wing_right
-    - abdomen
-    - abdomen_2
-    - abdomen_3
-    - abdomen_4
-    - abdomen_5
-    - abdomen_6
-    - abdomen_7
-    - haltere_left
-    - haltere_right
     - coxa_T1_left
     - femur_T1_left
     - tibia_T1_left
@@ -110,6 +99,37 @@ env_args:
     - tarsus3_T3_right
     - tarsus4_T3_right
     - claw_T3_right
+  site_names: 
+    - tracking[coxa_T1_left]
+    - tracking[femur_T1_left]
+    - tracking[tibia_T1_left]
+    - tracking[tarsus_T1_left]
+    - tracking[claw_T1_left]
+    - tracking[coxa_T1_right]
+    - tracking[femur_T1_right]
+    - tracking[tibia_T1_right]
+    - tracking[tarsus_T1_right]
+    - tracking[claw_T1_right]
+    - tracking[coxa_T2_left]
+    - tracking[femur_T2_left]
+    - tracking[tibia_T2_left]
+    - tracking[tarsus_T2_left]
+    - tracking[claw_T2_left]
+    - tracking[coxa_T2_right]
+    - tracking[femur_T2_right]
+    - tracking[tibia_T2_right]
+    - tracking[tarsus_T2_right]
+    - tracking[claw_T2_right]
+    - tracking[coxa_T3_left]
+    - tracking[femur_T3_left]
+    - tracking[tibia_T3_left]
+    - tracking[tarsus_T3_left]
+    - tracking[claw_T3_left]
+    - tracking[coxa_T3_right]
+    - tracking[femur_T3_right]
+    - tracking[tibia_T3_right]
+    - tracking[tarsus_T3_right]
+    - tracking[claw_T3_right]
   joint_names:
     - coxa_flexion_T1_left
     - coxa_twist_T1_left

@@ -1,22 +1,45 @@
-name: train_fly_freejnt
+name: train_fly
 version: ${resolve_default:debug,${..version}}
-gpu: ${resolve_default:1,${..gpu}}
+gpu: ${resolve_default:0,${..gpu}}
 wandb_project: "eabe_debug"
-env_name: fly_single_clip_freejnt
+env_name: fly_freejnt_clip
 algo_name: ppo
-task_name: track
+task_name: fly
 note: 
-num_envs: 2048
-num_timesteps: 3_000_000_000
-eval_every: 50_000_000
-episode_length: 250
+num_envs: 1024 
+num_timesteps: 5_000_000_000
+eval_every: 100_000_000
+episode_length: 601
 batch_size: ${train.num_envs}
 learning_rate: 3e-4
 num_minibatches: 32
-num_updates_per_batch: 16
+num_updates_per_batch: 8
 clipping_epsilon: 0.3
 entropy_cost: 1e-3
 action_repeat: 1
 unroll_length: 16
 discounting: 0.99
-mlp_policy_layer_sizes: [256, 256]
+mlp_policy_layer_sizes: [512, 512]
+restore_checkpoint: ''
+state_metric_list: 
+  - pos_reward
+  - quat_reward
+  - joint_reward
+  - angvel_reward
+  - bodypos_reward
+  - endeff_reward
+  - reward_ctrl
+  - healthy_reward
+  - too_far
+  - bad_pose
+  - bad_quat
+  - fall
+info_metric_list: 
+  - start_frame
+  - summed_pos_distance
+  - current_frame
+  - quat_distance
+  - joint_distance
+  - angvel_distance
+  - bodypos_distance
+  - endeff_distance
