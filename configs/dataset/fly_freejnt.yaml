@@ -13,7 +13,7 @@ env_args:
   solver: cg
   iterations: 12
   ls_iterations: 12
-  physics_steps_per_control_step: 5
+  physics_steps_per_control_step: 10
   too_far_dist: 0.1
   bad_pose_dist: 20.0 # 60.0
   bad_quat_dist: 1.0 #1.25
