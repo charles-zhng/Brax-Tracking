@@ -21,3 +21,16 @@ unroll_length: 16
 discounting: 0.99
 mlp_policy_layer_sizes: [512, 512]
 restore_checkpoint: ''
+state_metric_list:
+  - forward_reward
+  - reward_linvel
+  - reward_quadctrl
+  - reward_alive
+  - x_position
+  - y_position
+  - xy_ang_reward
+  - orientation
+  - distance_from_origin
+  - x_velocity
+  - y_velocity
+info_metric_list: []

@@ -1264,12 +1264,12 @@ class Fruitfly_Run(PipelineEnv):
             info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
         ) % self._clip_len
 
+
         track_joints = self._ref_traj.joints
         joint_distance = jp.sum(
             (data.qpos[self._joint_idxs] - track_joints[cur_frame, self._joint_idxs])
             ** 2
         )
-        # joint_reward = self._joint_reward_weight * jp.exp(-0.1 * joint_distance)
         joint_reward = self._joint_reward_weight * jp.exp(
             -self._joint_scaling * joint_distance
         )
@@ -1289,8 +1289,6 @@ class Fruitfly_Run(PipelineEnv):
         angvel_reward = self._angvel_reward_weight * jp.exp(
             -self._angvel_scaling * angvel_distance
         )
-        # angvel_reward = self._angvel_reward_weight * jp.exp(-0.5/53.7801**2 * angvel_distance)
-        # angvel_reward = self._angvel_reward_weight* jp.exp(-20 * angvel_distance)
         info["angvel_distance"] = angvel_distance
 
         track_bodypos = self._ref_traj.body_positions
@@ -1351,9 +1349,10 @@ class Fruitfly_Run(PipelineEnv):
         pos_reward = 0.0  # rewards_temp[0]
         # joint_reward = rewards_temp[1]
         # quat_reward = rewards_temp[2]
+        command = jp.array([self._ref_traj.lin_vel_y[cur_frame], 0 ,0])
         tracking_lin_vel = (
             self._tracking_lin_vel_weight
-            * self._reward_tracking_lin_vel(info["command"], x, xd)
+            * self._reward_tracking_lin_vel(command, x, xd)
         )
         ang_vel_xy = self._lin_vel_z_weight * self._reward_ang_vel_xy(xd)
         lin_vel_z = self._ang_vel_xy_weight * self._reward_lin_vel_z(xd)
@@ -1398,11 +1397,7 @@ class Fruitfly_Run(PipelineEnv):
         info["rng"] = rng
 
         # sample new command if more than 500 timesteps achieved
-        info["command"] = jp.where(
-            info["step"] > self._clip_len,
-            self.sample_command(cmd_rng),
-            info["command"],
-        )
+        info["command"] = jp.array([self._ref_traj.lin_vel_y[cur_frame], 0 ,0])
 
         # reset the step counter when done
         info["step"] = jp.where(done | (info["step"] > self._clip_len), 0, info["step"])
@@ -1603,16 +1598,10 @@ class FlyRunSim(PipelineEnv):
         kwargs["n_frames"] = kwargs.get("n_frames", physics_steps_per_control_step)
         kwargs["backend"] = "mjx"
 
-        max_physics_steps_per_control_step = int((1.0 / (mj_model.opt.timestep)))
-        if max_physics_steps_per_control_step % physics_steps_per_control_step != 0:
-            raise ValueError(
-                f"physics_steps_per_control_step ({physics_steps_per_control_step}) must be a factor of ({max_physics_steps_per_control_step})"
-            )
+
         super().__init__(sys, **kwargs)
 
-        self._steps_for_cur_frame = (
-            max_physics_steps_per_control_step / physics_steps_per_control_step
-        )
+        self._steps_for_cur_frame = 1
         print(f"self._steps_for_cur_frame: {self._steps_for_cur_frame}")
 
         self._thorax_idx = mujoco.mj_name2id(

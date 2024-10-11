@@ -198,13 +198,13 @@ def main(cfg: DictConfig) -> None:
             state = jit_reset(reset_rng)
 
             rollout = [state]
-            for i in range(env_args["clip_length"]*rollout_env._steps_for_cur_frame):
+            for i in range(env_args["clip_length"]*int(rollout_env._steps_for_cur_frame)):
                 _, act_rng = jax.random.split(act_rng)
                 obs = state.obs
                 ctrl, extras = jit_inference_fn(obs, act_rng)
                 state = jit_step(state, ctrl)
                 rollout.append(state)
-            
+            print('num_steps:', num_steps)
             ##### Log the rollout to wandb #####
             log_eval_rollout(cfg,rollout,state,env,reference_clip,model_path,num_steps)
 
