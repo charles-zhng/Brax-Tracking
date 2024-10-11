@@ -312,7 +312,7 @@
       <joint name="ball" pos="0 0 0" type="ball" />
       <geom name="floor" size="0.454" density="0.1" material="ballsurface"/>
     </body> -->
-    <geom name="floor" type="plane" size="5 5 .1" material="grid" pos="0 0 -.15"/>
+    <geom name="floor" type="plane" size="5 5 .1" material="grid" pos="0 0 -.115"/>
     <replicate count="2" euler="0 0 0" sep="-">
     <body name="thorax" childclass="body">
       <freejoint name="free"/>

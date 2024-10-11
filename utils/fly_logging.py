@@ -90,7 +90,7 @@ def render_pair_video(qposes_rollout,cfg,reference_clip,env,model_path,num_steps
     
     ref_traj = jax.tree_util.tree_map(f, reference_clip)
     
-    repeats_per_frame = env._steps_for_cur_frame #int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
+    repeats_per_frame = 1 # env._steps_for_cur_frame #int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
     spec = mujoco.MjSpec()
     spec.from_file(cfg.dataset.rendering_mjcf)
     thorax0 = spec.find_body("thorax-0")

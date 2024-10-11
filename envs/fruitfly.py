@@ -48,6 +48,7 @@ class Fruitfly_Tethered(PipelineEnv):
         bodypos_reward_weight=1.0,
         endeff_reward_weight=1.0,
         termination_weight=-1.0,
+        pos_scaling=400,
         joint_scaling=0.05,
         angvel_scaling=5e-3,
         bodypos_scaling=0.5,
@@ -149,6 +150,7 @@ class Fruitfly_Tethered(PipelineEnv):
         self._angvel_reward_weight = angvel_reward_weight
         self._bodypos_reward_weight = bodypos_reward_weight
         self._endeff_reward_weight = endeff_reward_weight
+        self._pos_scaling = pos_scaling
         self._joint_scaling = joint_scaling
         self._angvel_scaling = angvel_scaling
         self._bodypos_scaling = bodypos_scaling
@@ -735,6 +737,7 @@ class Fruitfly_Freejnt(PipelineEnv):
             "start_frame": start_frame,
             "summed_pos_distance": 0.0,
             "current_frame": start_frame,
+            "pos_distance":0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
             "angvel_distance": 0.0,
@@ -910,7 +913,7 @@ class Fruitfly_Freejnt(PipelineEnv):
             angvel_reward=angvel_reward,
             bodypos_reward=bodypos_reward,
             endeff_reward=endeff_reward,
-            reward_ctrlcost=-ctrl_cost,
+            reward_ctrl=-ctrl_cost,
             too_far=too_far,
             bad_pose=bad_pose,
             bad_quat=bad_quat,

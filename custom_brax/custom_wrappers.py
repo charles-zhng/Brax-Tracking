@@ -15,6 +15,7 @@ class RenderRolloutWrapperTracking(Wrapper):
             "start_frame": start_frame,
             "summed_pos_distance": 0.0,
             "current_frame": start_frame,
+            'pos_distance': 0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
             "angvel_distance": 0.0,

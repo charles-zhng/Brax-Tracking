@@ -1,4 +1,4 @@
-name: train_fly
+name: train_fly_freejnt
 version: ${resolve_default:debug,${..version}}
 gpu: ${resolve_default:0,${..gpu}}
 wandb_project: "eabe_debug"
@@ -38,6 +38,7 @@ info_metric_list:
   - start_frame
   - summed_pos_distance
   - current_frame
+  - pos_distance
   - quat_distance
   - joint_distance
   - angvel_distance
