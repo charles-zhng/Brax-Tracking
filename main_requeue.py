@@ -123,7 +123,7 @@ def main(cfg: DictConfig) -> None:
         # episode_length = (
         #     env_args.clip_length - 50 - env_cfg.ref_traj_length
         # ) * env_args.physics_steps_per_control_step
-        episode_length = (env_args.clip_length - 50 - env_cfg.ref_traj_length) * env._steps_for_cur_frame
+        episode_length = (env_args.clip_length - 50 - env_cfg.ref_traj_length)
         print(f"episode_length {episode_length}")
 
         train_fn = functools.partial(
@@ -149,7 +149,6 @@ def main(cfg: DictConfig) -> None:
                 value_hidden_layer_sizes=(256, 256),
             ),
             restore_checkpoint_path=restore_checkpoint
-            
         )
 
 
@@ -167,6 +166,7 @@ def main(cfg: DictConfig) -> None:
         )
 
         def wandb_progress(num_steps, metrics):
+            num_steps=int(num_steps)
             metrics["num_steps"] = num_steps
             wandb.log(metrics, commit=False)
 
@@ -184,6 +184,8 @@ def main(cfg: DictConfig) -> None:
         jit_step = jax.jit(rollout_env.step)
 
         def policy_params_fn(num_steps, make_policy, params, model_path=model_path):
+            print('num_steps:', num_steps)
+            num_steps=int(num_steps)
             ckptr = ocp.Checkpointer(ocp.PyTreeCheckpointHandler())
             save_args = orbax_utils.save_args_from_target(params)
             path = model_path / f'{num_steps}'
@@ -204,7 +206,6 @@ def main(cfg: DictConfig) -> None:
                 ctrl, extras = jit_inference_fn(obs, act_rng)
                 state = jit_step(state, ctrl)
                 rollout.append(state)
-            print('num_steps:', num_steps)
             ##### Log the rollout to wandb #####
             log_eval_rollout(cfg,rollout,state,env,reference_clip,model_path,num_steps)
 

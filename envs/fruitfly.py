@@ -598,7 +598,7 @@ class Fruitfly_Freejnt(PipelineEnv):
         site_names: List[str],
         scale_factor: float,
         clip_length: int,
-        mocap_hz: int = 250,
+        mocap_hz: int = 500,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_free.xml",
         ref_len: int = 5,
         too_far_dist=jp.inf,
@@ -649,7 +649,7 @@ class Fruitfly_Freejnt(PipelineEnv):
         mj_model.opt.jacobian = 0
 
         sys = mjcf_brax.load_model(mj_model)
-
+        physics_steps_per_control_step = int((1/mocap_hz)/sim_timestep)
         kwargs["n_frames"] = kwargs.get("n_frames", physics_steps_per_control_step)
         kwargs["backend"] = "mjx"
 
@@ -735,6 +735,7 @@ class Fruitfly_Freejnt(PipelineEnv):
 
         info = {
             "start_frame": start_frame,
+            "cur_frame": start_frame,
             "summed_pos_distance": 0.0,
             "current_frame": start_frame,
             'steps_taken_cur_frame': 0.0,
@@ -793,7 +794,7 @@ class Fruitfly_Freejnt(PipelineEnv):
         info["steps_taken_cur_frame"] *= jp.where(
             info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 0, 1
         )
-        cur_frame = info['cur_fram']
+        cur_frame = info['cur_frame']
         # Logic for getting current frame aligned with simulation time
         # cur_frame = (
         #     info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
