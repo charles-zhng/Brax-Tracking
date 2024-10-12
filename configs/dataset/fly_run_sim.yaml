@@ -7,7 +7,7 @@ clip_idx: 0
 ref_traj_length: 15
 env_args:
   clip_length: 500
-  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fastrun.xml" 
+  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_fast.xml" 
   sim_timestep: 2e-4
   solver: cg
   iterations: 10

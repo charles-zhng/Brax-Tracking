@@ -7,7 +7,7 @@ algo_name: ppo
 task_name: ${dataset.dname}
 note: 
 num_envs: 1024 
-num_timesteps: 5_000_000_000
+num_timesteps: 10_000_000_000
 eval_every: 100_000_000
 episode_length: 601
 batch_size: ${train.num_envs}
@@ -19,7 +19,7 @@ entropy_cost: 1e-2
 action_repeat: 1
 unroll_length: 20
 discounting: 0.95
-mlp_policy_layer_sizes: [512, 512]
+mlp_policy_layer_sizes: [256, 256]
 restore_checkpoint: ''
 state_metric_list: 
   - pos_reward
@@ -28,17 +28,14 @@ state_metric_list:
   - angvel_reward
   - bodypos_reward
   - endeff_reward
-  - reward_ctrl
-  - healthy_reward
+  - reward_ctrlcost
   - too_far
   - bad_pose
   - bad_quat
   - fall
 info_metric_list: 
-  - start_frame
+  - cur_frame
   - summed_pos_distance
-  - current_frame
-  - pos_distance
   - quat_distance
   - joint_distance
   - angvel_distance

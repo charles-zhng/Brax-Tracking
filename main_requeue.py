@@ -144,7 +144,7 @@ def main(cfg: DictConfig) -> None:
             network_factory=functools.partial(
                 ppo_networks.make_ppo_networks,
                 policy_hidden_layer_sizes=cfg.train["mlp_policy_layer_sizes"],
-                value_hidden_layer_sizes=(256, 256),
+                value_hidden_layer_sizes=cfg.train["mlp_policy_layer_sizes"],
             ),
             restore_checkpoint_path=restore_checkpoint
         )

@@ -7,7 +7,7 @@ clip_idx: 0
 ref_traj_length: 5
 env_args:
   clip_length: 1001
-  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" 
+  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_fast.xml" 
   scale_factor: 1 
   sim_timestep: 2e-4
   solver: cg
@@ -33,6 +33,7 @@ env_args:
   quat_scaling: 0.5
   healthy_reward: 5.0
   healthy_z_range: [-0.05, 0.1]
+  reset_noise_scale: 1e-4
   terminate_when_unhealthy: True
   free_jnt: True
   inference_mode: False
