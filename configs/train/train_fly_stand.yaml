@@ -11,24 +11,33 @@ num_timesteps: 2_000_000_000
 eval_every: 100_000_000
 episode_length: 250
 batch_size: ${train.num_envs}
-learning_rate: 3e-4
+learning_rate: 1e-4
 num_minibatches: 32
-num_updates_per_batch: 16
-clipping_epsilon: 0.3
-entropy_cost: 1e-3
+num_updates_per_batch: 8
+clipping_epsilon: 0.2
+entropy_cost: 1e-2
 action_repeat: 1
-unroll_length: 16
-discounting: 0.99
-mlp_policy_layer_sizes: [512, 512]
+unroll_length: 20
+discounting: 0.95
+mlp_policy_layer_sizes: [256, 256]
 restore_checkpoint: ''
 state_metric_list: 
-  - total_dist
-  - tracking_lin_vel
-  - ang_vel_xy
-  - lin_vel_z
-  - orientation
-  - torques
-  - action_rate
-  - stand_still
-  - termination
-info_metric_list: []
+  - pos_reward
+  - quat_reward
+  - joint_reward
+  - angvel_reward
+  - bodypos_reward
+  - endeff_reward
+  - reward_ctrlcost
+  - too_far
+  - bad_pose
+  - bad_quat
+  - fall
+info_metric_list: 
+  - cur_frame
+  - summed_pos_distance
+  - quat_distance
+  - joint_distance
+  - angvel_distance
+  - bodypos_distance
+  - endeff_distance

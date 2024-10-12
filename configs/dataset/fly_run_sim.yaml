@@ -13,7 +13,7 @@ env_args:
   iterations: 10
   ls_iterations: 10
   physics_steps_per_control_step: 10
-  ctrl_cost_weight: 0.0
+  ctrl_cost_weight: 0.02
   ang_vel_xy_weight: -0.05
   orientation_weight: -1
   healthy_reward: 5.0
