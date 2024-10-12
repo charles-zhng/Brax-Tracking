@@ -8,6 +8,7 @@ ref_traj_length: 5
 env_args:
   clip_length: 1001
   mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_fast.xml" 
+  ref_path: ${paths.data_dir}/clips/0_stand.h5
   scale_factor: 1 
   sim_timestep: 2e-4
   solver: cg
