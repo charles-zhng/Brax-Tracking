@@ -41,7 +41,7 @@ class ReferenceClip:
     body_quaternions: jp.ndarray = None
     
     # additional values
-    joint_names: List[str] = None
+    # joint_names: List[str] = None
     lin_vel_y: jp.ndarray = None
     
 

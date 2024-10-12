@@ -12,7 +12,8 @@ class RenderRolloutWrapperTracking(Wrapper):
 
         clip_idx = jax.random.randint(clip_rng, (), 0, self._n_clips)
         info = {
-            "clip_idx": 0,
+            "clip_idx": 0, #clip_idx
+            "start_frame":0,
             "cur_frame": 0,
             "steps_taken_cur_frame": 0,
             "summed_pos_distance": 0.0,

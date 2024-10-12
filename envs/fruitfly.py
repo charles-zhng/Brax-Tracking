@@ -20,6 +20,27 @@ import numpy as np
 
 import os
 
+def _bounded_quat_dist(source: np.ndarray, target: np.ndarray) -> np.ndarray:
+    """Computes a quaternion distance limiting the difference to a max of pi/2.
+
+    This function supports an arbitrary number of batch dimensions, B.
+
+    Args:
+        source: a quaternion, shape (B, 4).
+        target: another quaternion, shape (B, 4).
+
+    Returns:
+        Quaternion distance, shape (B, 1).
+    """
+    source /= jp.linalg.norm(source, axis=-1, keepdims=True)
+    target /= jp.linalg.norm(target, axis=-1, keepdims=True)
+    # "Distance" in interval [-1, 1].
+    dist = 2 * jp.einsum("...i,...i", source, target) ** 2 - 1
+    # Clip at 1 to avoid occasional machine epsilon leak beyond 1.
+    dist = jp.minimum(1.0, dist)
+    # Divide by 2 and add an axis to ensure consistency with expected return
+    # shape and magnitude.
+    return 0.5 * jp.arccos(dist)[..., np.newaxis]
 
 class Fruitfly_Tethered(PipelineEnv):
 
@@ -750,12 +771,10 @@ class Fruitfly_Freejnt(PipelineEnv):
     def reset_from_clip(self, rng, info) -> State:
         """Reset based on a reference clip."""
         _, rng1, rng2 = jax.random.split(rng, 3)
-
         # Get reference clip and select the start frame
         reference_frame = jax.tree_map(
             lambda x: x[info["cur_frame"]], self._get_reference_clip(info)
         )
-
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
         # Add pos
@@ -811,12 +830,15 @@ class Fruitfly_Freejnt(PipelineEnv):
         info["steps_taken_cur_frame"] *= jp.where(
             info["steps_taken_cur_frame"] == self._steps_for_cur_frame, 0, 1
         )
-
+        # cur_frame = (
+        #     info["start_frame"] + jp.floor(data.time * self._mocap_hz).astype(jp.int32)
+        # ) % self._clip_len
+        # info["cur_frame"] += 1
         # Gets reference clip and indexes to current frame
+        # reference_clip = self._get_reference_trajectory(info)
         reference_clip = jax.tree_map(
-            lambda x: x[info["cur_frame"].astype(int)], self._get_reference_clip(info)
+            lambda x: x[info["cur_frame"]], self._get_reference_clip(info)
         )
-
         pos_distance = data.qpos[:3] - reference_clip.position
         pos_reward = self._pos_reward_weight * jp.exp(-self._pos_scaling * jp.sum(pos_distance**2))
 
@@ -978,29 +1000,22 @@ class Fruitfly_Freejnt(PipelineEnv):
         )
         return reference_obs, prorioceptive_obs
     
-def _bounded_quat_dist(source: np.ndarray, target: np.ndarray) -> np.ndarray:
-    """Computes a quaternion distance limiting the difference to a max of pi/2.
-
-    This function supports an arbitrary number of batch dimensions, B.
-
-    Args:
-        source: a quaternion, shape (B, 4).
-        target: another quaternion, shape (B, 4).
-
-    Returns:
-        Quaternion distance, shape (B, 1).
-    """
-    source /= jp.linalg.norm(source, axis=-1, keepdims=True)
-    target /= jp.linalg.norm(target, axis=-1, keepdims=True)
-    # "Distance" in interval [-1, 1].
-    dist = 2 * jp.einsum("...i,...i", source, target) ** 2 - 1
-    # Clip at 1 to avoid occasional machine epsilon leak beyond 1.
-    dist = jp.minimum(1.0, dist)
-    # Divide by 2 and add an axis to ensure consistency with expected return
-    # shape and magnitude.
-    return 0.5 * jp.arccos(dist)[..., np.newaxis]
-
-
+    def render(
+        self,
+        trajectory: List[base.State],
+        camera: str | None = None,
+        width: int = 480,
+        height: int = 320,
+        scene_option: Any = None,
+    ) -> Sequence[np.ndarray]:
+        camera = camera or "track"
+        return super().render(
+            trajectory,
+            camera=camera,
+            width=width,
+            height=height,
+            scene_option=scene_option,
+        )
 # class Fruitfly_Freejnt(PipelineEnv):
     # def __init__(
     #     self,
