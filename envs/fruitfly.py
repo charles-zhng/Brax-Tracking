@@ -621,7 +621,7 @@ class Fruitfly_Freejnt(PipelineEnv):
         scale_factor: float,
         clip_length: int,
         torque_actuators: bool = False,
-        mocap_hz: int = 250,
+        mocap_hz: int = 500,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_free.xml",
         ref_len: int = 5,
         n_clips: int = 1,
@@ -671,7 +671,7 @@ class Fruitfly_Freejnt(PipelineEnv):
         }[solver.lower()]
         mj_model.opt.iterations = iterations
         mj_model.opt.ls_iterations = ls_iterations
-
+        mj_model.opt.timestep = sim_timestep
         mj_model.opt.jacobian = 0
 
         sys = mjcf_brax.load_model(mj_model)
@@ -694,8 +694,8 @@ class Fruitfly_Freejnt(PipelineEnv):
         )
         print(f"self._steps_for_cur_frame: {self._steps_for_cur_frame}")
 
-        self._torso_idx = mujoco.mj_name2id(
-            mj_model, mujoco.mju_str2Type("body"), "torso"
+        self._thorax_idx = mujoco.mj_name2id(
+            mj_model, mujoco.mju_str2Type("body"), "thorax"
         )
 
         self._joint_idxs = jp.array(
@@ -878,8 +878,8 @@ class Fruitfly_Freejnt(PipelineEnv):
         )
 
         min_z, max_z = self._healthy_z_range
-        is_healthy = jp.where(data.xpos[self._torso_idx][2] < min_z, 0.0, 1.0)
-        is_healthy = jp.where(data.xpos[self._torso_idx][2] > max_z, 0.0, is_healthy)
+        is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
+        is_healthy = jp.where(data.xpos[self._thorax_idx][2] > max_z, 0.0, is_healthy)
         fall = 1.0 - is_healthy
 
         summed_pos_distance = jp.sum((pos_distance * jp.array([1.0, 1.0, 0.2])) ** 2)
@@ -1875,14 +1875,14 @@ class Fruitfly_Run(PipelineEnv):
         info: dict[str, Any],
         obs_history: jax.Array,
     ) -> jax.Array:
-        inv_torso_rot = brax_math.quat_inv(data.x.rot[0])
-        local_rpyrate = brax_math.rotate(data.xd.ang[0], inv_torso_rot)
+        inv_thorax_rot = brax_math.quat_inv(data.x.rot[0])
+        local_rpyrate = brax_math.rotate(data.xd.ang[0], inv_thorax_rot)
 
         obs = jp.concatenate(
             [
                 jp.array([local_rpyrate[2]]) * 0.25,  # yaw rate
                 brax_math.rotate(
-                    jp.array([0, 0, -1]), inv_torso_rot
+                    jp.array([0, 0, -1]), inv_thorax_rot
                 ),  # projected gravity
                 info["command"] * jp.array([2.0, 2.0, 0.25]),  # command
                 data.q[7:] - self._default_pose,  # motor angles
