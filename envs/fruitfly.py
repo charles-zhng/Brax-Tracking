@@ -603,6 +603,7 @@ class Fruitfly_Freejnt(PipelineEnv):
         mocap_hz: int = 250,
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_free.xml",
         ref_len: int = 5,
+        n_clips: int = 1,
         too_far_dist=jp.inf,
         bad_pose_dist=jp.inf,
         bad_quat_dist=jp.inf,
@@ -697,6 +698,7 @@ class Fruitfly_Freejnt(PipelineEnv):
             ]
         )
 
+        self._n_clips = n_clips
         self._reference_clip = reference_clip
         self._sim_timestep = sim_timestep
         self._free_jnt = free_jnt
@@ -751,7 +753,7 @@ class Fruitfly_Freejnt(PipelineEnv):
 
         # Get reference clip and select the start frame
         reference_frame = jax.tree_map(
-            lambda x: x[(info["cur_frame"]).astype(int)], self._get_reference_clip(info)
+            lambda x: x[info["cur_frame"]], self._get_reference_clip(info)
         )
 
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
@@ -919,13 +921,14 @@ class Fruitfly_Freejnt(PipelineEnv):
 
         # Get the relevant slice of the reference clip
         def f(x):
-            if len(x.shape) != 1:
-                return jax.lax.dynamic_slice_in_dim(
-                    x,
-                    info["cur_frame"] + 1,
-                    self._ref_len,
-                )
-            return jp.array([])
+            if (not isinstance(x,str)):
+                if len(x.shape) != 1:
+                    return jax.lax.dynamic_slice_in_dim(
+                        x,
+                        info["cur_frame"] + 1,
+                        self._ref_len,
+                    )
+                return jp.array([])
 
         return jax.tree_util.tree_map(f, self._get_reference_clip(info))
 
