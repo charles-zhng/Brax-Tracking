@@ -751,7 +751,7 @@ class Fruitfly_Freejnt(PipelineEnv):
 
         # Get reference clip and select the start frame
         reference_frame = jax.tree_map(
-            lambda x: x[info["cur_frame"]], self._get_reference_clip(info)
+            lambda x: x[(info["cur_frame"]).astype(int)], self._get_reference_clip(info)
         )
 
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
@@ -812,7 +812,7 @@ class Fruitfly_Freejnt(PipelineEnv):
 
         # Gets reference clip and indexes to current frame
         reference_clip = jax.tree_map(
-            lambda x: x[info["cur_frame"]], self._get_reference_clip(info)
+            lambda x: x[info["cur_frame"].astype(int)], self._get_reference_clip(info)
         )
 
         pos_distance = data.qpos[:3] - reference_clip.position
