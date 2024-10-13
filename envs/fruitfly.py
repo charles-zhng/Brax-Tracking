@@ -778,16 +778,17 @@ class Fruitfly_Freejnt(PipelineEnv):
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
         # Add pos
-        qpos_with_pos = jp.array(self.sys.qpos0).at[:3].set(reference_frame.position)
+        # qpos_with_pos = jp.array(self.sys.qpos0).at[:3].set(reference_frame.position)
 
-        # Add quat
-        new_qpos = qpos_with_pos.at[3:7].set(reference_frame.quaternion)
+        # # Add quat
+        # new_qpos = qpos_with_pos.at[3:7].set(reference_frame.quaternion)
 
-        # Add noise
-        qpos = new_qpos #+ jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
+        # # Add noise
+        new_qpos = jp.concatenate((reference_frame.position, reference_frame.quaternion, reference_frame.joints))
+        qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
         # qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
         qvel = jp.zeros((self.sys.nv))
-
+        data = self.pipeline_init(qpos, qvel)
         data = self.pipeline_init(qpos, qvel)
 
         reference_obs, proprioceptive_obs = self._get_obs(data, info)
@@ -2379,17 +2380,17 @@ class FlyStand(PipelineEnv):
         )
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
-        # Add pos
-        qpos_with_pos = jp.array(self.sys.qpos0).at[:3].set(reference_frame.position)
+        # # Add pos
+        # qpos_with_pos = jp.array(self.sys.qpos0).at[:3].set(reference_frame.position)
 
-        # Add quat
-        new_qpos = qpos_with_pos.at[3:7].set(reference_frame.quaternion)
+        # # Add quat
+        # new_qpos = qpos_with_pos.at[3:7].set(reference_frame.quaternion)
 
-        # Add noise
-        qpos = new_qpos #+ jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
+        new_qpos = jp.concatenate((reference_frame.position, reference_frame.quaternion, reference_frame.joints))
+        # # Add noise
+        qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
         # qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
         qvel = jp.zeros((self.sys.nv))
-
         data = self.pipeline_init(qpos, qvel)
 
         reference_obs, proprioceptive_obs = self._get_obs(data, info)
