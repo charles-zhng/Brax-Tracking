@@ -173,8 +173,8 @@ def main(cfg: DictConfig) -> None:
             rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Run(env)
         elif cfg.dataset.dname == 'fly_run_sim':
             rollout_env = custom_wrappers.RenderRolloutWrapperTracking_RunSim(env)
-        elif cfg.dataset.dname == 'fly_stand':
-            rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Stand(env)
+        # elif cfg.dataset.dname == 'fly_stand':
+        #     rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Stand(env)
         else:
             rollout_env = custom_wrappers.RenderRolloutWrapperTracking(env)
         # define the jit reset/step functions

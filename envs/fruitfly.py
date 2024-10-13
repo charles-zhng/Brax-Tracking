@@ -162,7 +162,7 @@ class Fruitfly_Tethered(PipelineEnv):
         self._bad_pose_dist = bad_pose_dist
         self._too_far_dist = too_far_dist
         self._bad_quat_dist = bad_quat_dist
-        self._ref_traj = reference_clip
+        self._reference_clip = reference_clip
         self._ref_len = ref_len
         self._clip_len = clip_length
         self._pos_reward_weight = pos_reward_weight
@@ -204,10 +204,10 @@ class Fruitfly_Tethered(PipelineEnv):
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
         # Add pos (without z height)
-        # new_qpos = jp.array(self._ref_traj.joints[start_frame])
+        # new_qpos = jp.array(self._reference_clip.joints[start_frame])
         init_q = self.sys.qpos0
         init_q = init_q.at[self._joint_idxs].set(
-            self._ref_traj.joints[0, self._joint_idxs]
+            self._reference_clip.joints[0, self._joint_idxs]
         )
         new_qpos = jp.array(init_q)
 
@@ -256,7 +256,7 @@ class Fruitfly_Tethered(PipelineEnv):
         pos_distance = 0.0
         pos_reward = 0.0
 
-        track_joints = self._ref_traj.joints
+        track_joints = self._reference_clip.joints
         joint_distance = jp.sum(
             (data.qpos[self._joint_idxs] - track_joints[cur_frame, self._joint_idxs])
             ** 2
@@ -267,7 +267,7 @@ class Fruitfly_Tethered(PipelineEnv):
         )
         info["joint_distance"] = joint_distance
 
-        track_angvel = self._ref_traj.joints_velocity
+        track_angvel = self._reference_clip.joints_velocity
         angvel_distance = (
             jp.sum(
                 (
@@ -285,7 +285,7 @@ class Fruitfly_Tethered(PipelineEnv):
         # angvel_reward = self._angvel_reward_weight* jp.exp(-20 * angvel_distance)
         info["angvel_distance"] = angvel_distance
 
-        track_bodypos = self._ref_traj.body_positions
+        track_bodypos = self._reference_clip.body_positions
         bodypos_distance = jp.sum(
             (
                 data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]
@@ -311,7 +311,7 @@ class Fruitfly_Tethered(PipelineEnv):
         )
         info["endeff_distance"] = endeff_distance
 
-        track_quat = self._ref_traj.body_quaternions
+        track_quat = self._reference_clip.body_quaternions
         quat_distance = jp.sum(
             self._bounded_quat_dist(
                 data.xquat[self._body_idxs], track_quat[cur_frame, self._body_idxs]
@@ -386,7 +386,7 @@ class Fruitfly_Tethered(PipelineEnv):
     def _get_obs(self, data: mjx.Data, cur_frame: int) -> jp.ndarray:
         """Observes rodent body position, velocities, and angles."""
 
-        # Get the relevant slice of the ref_traj
+        # Get the relevant slice of the reference_clip
         def f(x):
             if not isinstance(x, str):
                 if len(x.shape) != 1:
@@ -397,12 +397,12 @@ class Fruitfly_Tethered(PipelineEnv):
                     )
             return jp.array([])
 
-        ref_traj = jax.tree_util.tree_map(f, self._ref_traj)
+        reference_clip = jax.tree_util.tree_map(f, self._reference_clip)
 
         # track_pos_local = jax.vmap(
         #     lambda a, b: brax_math.rotate(a, b), in_axes=(0, None)
         # )(
-        #     ref_traj.position - data.qpos[:3],
+        #     reference_clip.position - data.qpos[:3],
         #     data.qpos[3:7],
         # ).flatten()
 
@@ -410,11 +410,11 @@ class Fruitfly_Tethered(PipelineEnv):
             lambda a, b: brax_math.relative_quat(a, b), in_axes=(None, 0)
         )(
             data.xquat[self._body_idxs],
-            ref_traj.body_quaternions[:, self._body_idxs],
+            reference_clip.body_quaternions[:, self._body_idxs],
         ).flatten()
 
         joint_dist = (
-            ref_traj.joints[:, self._joint_idxs] - data.qpos[self._joint_idxs]
+            reference_clip.joints[:, self._joint_idxs] - data.qpos[self._joint_idxs]
         ).flatten()
 
         # TODO test if this works
@@ -422,7 +422,7 @@ class Fruitfly_Tethered(PipelineEnv):
             lambda a, b: jax.vmap(brax_math.rotate, in_axes=(0, None))(a, b),
             in_axes=(0, None),
         )(
-            (ref_traj.body_positions[:, self._body_idxs] - data.xpos[self._body_idxs]),
+            (reference_clip.body_positions[:, self._body_idxs] - data.xpos[self._body_idxs]),
             data.qpos[3:7],
         ).flatten()
 
@@ -469,7 +469,7 @@ class Fruitfly_Tethered(PipelineEnv):
             return (1,)
         step = round(data.time / self._dt)
         walker_ft = self._get_walker_features(data, self._joint_idxs, self._site_idxs)
-        reference_ft = self._get_reference_features(self._ref_traj, step)
+        reference_ft = self._get_reference_features(self._reference_clip, step)
         reward_factors = self._reward_factors_deep_mimic(
             walker_features=walker_ft,
             reference_features=reference_ft,
@@ -956,29 +956,29 @@ class Fruitfly_Freejnt(PipelineEnv):
     def _get_obs(self, data: mjx.Data, info) -> jp.ndarray:
         """Observes rodent body position, velocities, and angles."""
 
-        ref_traj = self._get_reference_trajectory(info)
+        reference_clip = self._get_reference_trajectory(info)
 
         track_pos_local = jax.vmap(
             lambda a, b: brax_math.rotate(a, b), in_axes=(0, None)
         )(
-            ref_traj.position - data.qpos[:3],
+            reference_clip.position - data.qpos[:3],
             data.qpos[3:7],
         ).flatten()
 
         quat_dist = jax.vmap(
             lambda a, b: brax_math.relative_quat(a, b), in_axes=(0, None)
         )(
-            ref_traj.quaternion,
+            reference_clip.quaternion,
             data.qpos[3:7],
         ).flatten()
 
-        joint_dist = (ref_traj.joints - data.qpos[7:])[:, self._joint_idxs].flatten()
+        joint_dist = (reference_clip.joints - data.qpos[7:])[:, self._joint_idxs].flatten()
 
         body_pos_dist_local = jax.vmap(
             lambda a, b: jax.vmap(brax_math.rotate, in_axes=(0, None))(a, b),
             in_axes=(0, None),
         )(
-            (ref_traj.body_positions - data.xpos)[:, self._body_idxs],
+            (reference_clip.body_positions - data.xpos)[:, self._body_idxs],
             data.qpos[3:7],
         ).flatten()
 
@@ -1134,7 +1134,7 @@ class Fruitfly_Freejnt(PipelineEnv):
     #     self._bad_pose_dist = bad_pose_dist
     #     self._too_far_dist = too_far_dist
     #     self._bad_quat_dist = bad_quat_dist
-    #     self._ref_traj = reference_clip
+    #     self._reference_clip = reference_clip
     #     self._ref_len = ref_len
     #     self._clip_len = clip_length
     #     self._pos_reward_weight = pos_reward_weight
@@ -1179,10 +1179,10 @@ class Fruitfly_Freejnt(PipelineEnv):
     #     low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
     #     # Add pos (without z height)
-    #     qpos_with_pos = jp.array(self.sys.qpos0).at[:3].set(self._ref_traj.position[start_frame])
+    #     qpos_with_pos = jp.array(self.sys.qpos0).at[:3].set(self._reference_clip.position[start_frame])
 
     #     # Add quat
-    #     new_qpos = qpos_with_pos.at[3:7].set(self._ref_traj.quaternion[start_frame])
+    #     new_qpos = qpos_with_pos.at[3:7].set(self._reference_clip.quaternion[start_frame])
 
     #     # Add noise
     #     qpos = new_qpos + jax.random.uniform(
@@ -1231,12 +1231,12 @@ class Fruitfly_Freejnt(PipelineEnv):
     #     # info["current_frame"] += 1
         
     #     ##### Position of the COM #####
-    #     pos_distance = jp.sum((data.qpos[:3] - self._ref_traj.position[cur_frame]).flatten()**2)
+    #     pos_distance = jp.sum((data.qpos[:3] - self._reference_clip.position[cur_frame]).flatten()**2)
     #     pos_reward = self._pos_reward_weight * jp.exp(-self._pos_scaling * pos_distance)
     #     info["pos_distance"] = pos_distance
         
     #     ##### Quaternions of COM #####
-    #     track_quat = self._ref_traj.quaternion
+    #     track_quat = self._reference_clip.quaternion
     #     quat_distance = jp.sum(
     #         self._bounded_quat_dist(
     #             data.qpos[3:7], track_quat[cur_frame]
@@ -1249,7 +1249,7 @@ class Fruitfly_Freejnt(PipelineEnv):
     #     info["quat_distance"] = quat_distance
 
     #     ##### Joint positions #####
-    #     track_joints = self._ref_traj.joints
+    #     track_joints = self._reference_clip.joints
     #     joint_distance = jp.sum(
     #         (data.qpos[self._joint_idxs] - track_joints[cur_frame, self._joint_idxs])
     #         ** 2
@@ -1260,7 +1260,7 @@ class Fruitfly_Freejnt(PipelineEnv):
     #     info["joint_distance"] = joint_distance
 
     #     ##### Angular velocities #####
-    #     track_angvel = self._ref_traj.angular_velocity
+    #     track_angvel = self._reference_clip.angular_velocity
     #     angvel_distance = (
     #         jp.sum(
     #             (
@@ -1276,7 +1276,7 @@ class Fruitfly_Freejnt(PipelineEnv):
     #     )
     #     info["angvel_distance"] = angvel_distance
 
-    #     track_bodypos = self._ref_traj.body_positions
+    #     track_bodypos = self._reference_clip.body_positions
     #     bodypos_distance = jp.sum(
     #         (
     #             data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]
@@ -1365,7 +1365,7 @@ class Fruitfly_Freejnt(PipelineEnv):
     # def _get_obs(self, data: mjx.Data, cur_frame: int) -> jp.ndarray:
     #     """Observes rodent body position, velocities, and angles."""
 
-    #     # Get the relevant slice of the ref_traj
+    #     # Get the relevant slice of the reference_clip
     #     def f(x):
     #         if not isinstance(x, str):
     #             if len(x.shape) != 1:
@@ -1376,12 +1376,12 @@ class Fruitfly_Freejnt(PipelineEnv):
     #                 )
     #         return jp.array([])
 
-    #     ref_traj = jax.tree_util.tree_map(f, self._ref_traj)
+    #     reference_clip = jax.tree_util.tree_map(f, self._reference_clip)
 
     #     track_pos_local = jax.vmap(
     #         lambda a, b: brax_math.rotate(a, b), in_axes=(0, None)
     #     )(
-    #         ref_traj.position - data.qpos[:3],
+    #         reference_clip.position - data.qpos[:3],
     #         data.qpos[3:7],
     #     ).flatten()
 
@@ -1389,13 +1389,13 @@ class Fruitfly_Freejnt(PipelineEnv):
     #     quat_dist = jax.vmap(
     #         lambda a, b: brax_math.relative_quat(a, b), in_axes=(0, None)
     #     )(
-    #         ref_traj.quaternion,
+    #         reference_clip.quaternion,
     #         data.qpos[3:7],
     #     ).flatten()
 
 
     #     joint_dist = (
-    #         ref_traj.joints[:, self._joint_idxs] - data.qpos[self._joint_idxs]
+    #         reference_clip.joints[:, self._joint_idxs] - data.qpos[self._joint_idxs]
     #     ).flatten()
 
     #     # TODO test if this works
@@ -1403,7 +1403,7 @@ class Fruitfly_Freejnt(PipelineEnv):
     #         lambda a, b: jax.vmap(brax_math.rotate, in_axes=(0, None))(a, b),
     #         in_axes=(0, None),
     #     )(
-    #         (ref_traj.body_positions[:, self._body_idxs] - data.xpos[self._body_idxs]),
+    #         (reference_clip.body_positions[:, self._body_idxs] - data.xpos[self._body_idxs]),
     #         data.qpos[3:7],
     #     ).flatten()
 
@@ -1598,7 +1598,7 @@ class Fruitfly_Run(PipelineEnv):
         self._bad_pose_dist = bad_pose_dist
         self._too_far_dist = too_far_dist
         self._bad_quat_dist = bad_quat_dist
-        self._ref_traj = reference_clip
+        self._reference_clip = reference_clip
         self._ref_len = ref_len
         self._clip_len = clip_length
         self._pos_reward_weight = pos_reward_weight
@@ -1706,7 +1706,7 @@ class Fruitfly_Run(PipelineEnv):
         ) % self._clip_len
 
 
-        track_joints = self._ref_traj.joints
+        track_joints = self._reference_clip.joints
         joint_distance = jp.sum(
             (data.qpos[self._joint_idxs] - track_joints[cur_frame, self._joint_idxs])
             ** 2
@@ -1716,7 +1716,7 @@ class Fruitfly_Run(PipelineEnv):
         )
         info["joint_distance"] = joint_distance
 
-        track_angvel = self._ref_traj.joints_velocity
+        track_angvel = self._reference_clip.joints_velocity
         angvel_distance = (
             jp.sum(
                 (
@@ -1732,7 +1732,7 @@ class Fruitfly_Run(PipelineEnv):
         )
         info["angvel_distance"] = angvel_distance
 
-        track_bodypos = self._ref_traj.body_positions
+        track_bodypos = self._reference_clip.body_positions
         bodypos_distance = jp.sum(
             (
                 data.xpos[self._body_idxs] - track_bodypos[cur_frame][self._body_idxs]
@@ -1758,7 +1758,7 @@ class Fruitfly_Run(PipelineEnv):
         )
         info["endeff_distance"] = endeff_distance
 
-        track_quat = self._ref_traj.body_quaternions
+        track_quat = self._reference_clip.body_quaternions
         quat_distance = jp.sum(
             self._bounded_quat_dist(
                 data.xquat[self._body_idxs], track_quat[cur_frame, self._body_idxs]
@@ -1790,7 +1790,7 @@ class Fruitfly_Run(PipelineEnv):
         pos_reward = 0.0  # rewards_temp[0]
         # joint_reward = rewards_temp[1]
         # quat_reward = rewards_temp[2]
-        command = jp.array([self._ref_traj.lin_vel_y[cur_frame], 0 ,0])
+        command = jp.array([self._reference_clip.lin_vel_y[cur_frame], 0 ,0])
         tracking_lin_vel = (
             self._tracking_lin_vel_weight
             * self._reward_tracking_lin_vel(command, x, xd)
@@ -1838,7 +1838,7 @@ class Fruitfly_Run(PipelineEnv):
         info["rng"] = rng
 
         # sample new command if more than 500 timesteps achieved
-        info["command"] = jp.array([self._ref_traj.lin_vel_y[cur_frame], 0 ,0])
+        info["command"] = jp.array([self._reference_clip.lin_vel_y[cur_frame], 0 ,0])
 
         # reset the step counter when done
         info["step"] = jp.where(done | (info["step"] > self._clip_len), 0, info["step"])
@@ -2558,29 +2558,29 @@ class FlyStand(PipelineEnv):
     def _get_obs(self, data: mjx.Data, info) -> jp.ndarray:
         """Observes rodent body position, velocities, and angles."""
 
-        ref_traj = self._get_reference_trajectory(info)
+        reference_clip = self._get_reference_trajectory(info)
 
         track_pos_local = jax.vmap(
             lambda a, b: brax_math.rotate(a, b), in_axes=(0, None)
         )(
-            ref_traj.position - data.qpos[:3],
+            reference_clip.position - data.qpos[:3],
             data.qpos[3:7],
         ).flatten()
 
         quat_dist = jax.vmap(
             lambda a, b: brax_math.relative_quat(a, b), in_axes=(0, None)
         )(
-            ref_traj.quaternion,
+            reference_clip.quaternion,
             data.qpos[3:7],
         ).flatten()
 
-        joint_dist = (ref_traj.joints - data.qpos[7:])[:, self._joint_idxs].flatten()
+        joint_dist = (reference_clip.joints - data.qpos[7:])[:, self._joint_idxs].flatten()
 
         body_pos_dist_local = jax.vmap(
             lambda a, b: jax.vmap(brax_math.rotate, in_axes=(0, None))(a, b),
             in_axes=(0, None),
         )(
-            (ref_traj.body_positions - data.xpos)[:, self._body_idxs],
+            (reference_clip.body_positions - data.xpos)[:, self._body_idxs],
             data.qpos[3:7],
         ).flatten()
 
@@ -2703,7 +2703,7 @@ class FlyStand(PipelineEnv):
 #             body_quaternions=ref_clip["body_quaternions"],
 #         )
 
-#         self._ref_traj = clip
+#         self._reference_clip = clip
 #         self._default_pose = self.sys.qpos0[7:]
 #         self._thorax_idx = mujoco.mj_name2id(
 #             mj_model, mujoco.mju_str2Type("body"), center_of_mass
@@ -2712,7 +2712,7 @@ class FlyStand(PipelineEnv):
 #         self._nq = sys.nq
 #         self._nu = sys.nu
 #         self._mocap_hz = mocap_hz
-#         self._ref_traj = reference_clip
+#         self._reference_clip = reference_clip
 #         self._obs_noise = obs_noise
 #         self._reset_noise_scale = reset_noise_scale
 #         self._sim_timestep = sim_timestep

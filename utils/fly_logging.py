@@ -88,7 +88,7 @@ def render_pair_video(qposes_rollout,cfg,reference_clip,env,model_path,num_steps
                 )
         return jp.array([])
     
-    ref_traj = jax.tree_util.tree_map(f, reference_clip)
+    ref_traj = jax.tree_util.tree_map(f, env._reference_clip)
     
     repeats_per_frame = 1 # env._steps_for_cur_frame #int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
     spec = mujoco.MjSpec()
