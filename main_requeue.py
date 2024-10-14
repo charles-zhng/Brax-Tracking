@@ -121,7 +121,7 @@ def main(cfg: DictConfig) -> None:
         # episode_length = (
         #     env_args.clip_length - 50 - env_cfg.ref_traj_length
         # ) * env_args.physics_steps_per_control_step
-        episode_length = (env_args.clip_length - 50 - env_cfg.ref_traj_length)
+        episode_length = (env_args.clip_length - 50 - env_cfg.ref_traj_length) * env._steps_for_cur_frame
         print(f"episode_length {episode_length}")
 
         train_fn = functools.partial(
@@ -135,6 +135,7 @@ def main(cfg: DictConfig) -> None:
             unroll_length=cfg.train["unroll_length"],
             num_minibatches=cfg.train["num_minibatches"],
             num_updates_per_batch=cfg.train["num_updates_per_batch"],
+            num_resets_per_eval=cfg.train['num_resets_per_eval'],
             discounting=cfg.train["discounting"],
             learning_rate=cfg.train["learning_rate"],
             entropy_cost=cfg.train["entropy_cost"],

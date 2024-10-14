@@ -789,7 +789,6 @@ class Fruitfly_Freejnt(PipelineEnv):
         qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
         # qvel = jp.zeros((self.sys.nv))
         data = self.pipeline_init(qpos, qvel)
-        data = self.pipeline_init(qpos, qvel)
 
         reference_obs, proprioceptive_obs = self._get_obs(data, info)
 
@@ -869,7 +868,7 @@ class Fruitfly_Freejnt(PipelineEnv):
         info['bodypos_distance'] = bodypos_distance
         
         ##### End Effectors Reward #####
-        endeff_distance = jp.sum((data.xpos[self._endeff_idxs]- reference_clip.body_positions[self._endeff_idxs]).flatten()** 2)
+        endeff_distance = jp.sum((data.xpos[self._endeff_idxs] - reference_clip.body_positions[self._endeff_idxs]).flatten()** 2)
         endeff_reward = self._endeff_reward_weight * jp.exp(
             -self._endeff_scaling
             * endeff_distance
@@ -903,7 +902,6 @@ class Fruitfly_Freejnt(PipelineEnv):
             + bodypos_reward
             + endeff_reward
             + ctrl_cost
-            + termination_reward
         )
         # Handle nans during sim by resetting env
         reward = jp.nan_to_num(reward)

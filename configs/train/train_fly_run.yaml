@@ -18,6 +18,7 @@ clipping_epsilon: 0.3
 entropy_cost: 1e-3
 action_repeat: 1
 unroll_length: 16
+num_resets_per_eval: 1
 discounting: 0.99
 mlp_policy_layer_sizes: [512, 512]
 restore_checkpoint: ''

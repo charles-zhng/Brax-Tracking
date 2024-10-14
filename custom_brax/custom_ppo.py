@@ -492,7 +492,7 @@ def train(
                 ),
                 training_metrics,
             )
-            logging.info(metrics)
+            logging.info(metrics)           
             progress_fn(current_step, metrics)
             params = _unpmap(
                 (training_state.normalizer_params, training_state.params) ##### Made to output value as well

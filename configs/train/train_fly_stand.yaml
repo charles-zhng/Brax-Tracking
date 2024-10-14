@@ -19,6 +19,7 @@ entropy_cost: 1e-2
 action_repeat: 1
 unroll_length: 20
 discounting: 0.95
+num_resets_per_eval: 1
 mlp_policy_layer_sizes: [256, 256]
 restore_checkpoint: ''
 state_metric_list: 
