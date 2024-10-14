@@ -70,51 +70,31 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     # Render the walker with the reference expert demonstration trajectory
     os.environ["MUJOCO_GL"] = "osmesa"
     qposes_rollout = np.array([state.pipeline_state.qpos for state in rollout])
-
+    
+    ref_traj = env._get_reference_clip(rollout[0].info)
+    print(f"clip_id:{rollout[0].info}")
+    qposes_ref = np.repeat(
+        np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),
+        env._steps_for_cur_frame,
+        axis=0,
+    )
+    
     if 'pair' in cfg.dataset.rendering_mjcf:
-        render_pair_video(qposes_rollout,cfg,reference_clip,env,model_path,num_steps)
+        render_pair_video(qposes_rollout,qposes_ref,cfg,env,model_path,num_steps)
     else: 
         render_single_vid(qposes_rollout,cfg,env,model_path,num_steps)
 
 ##### Rendering with pair xml #####
-def render_pair_video(qposes_rollout,cfg,reference_clip,env,model_path,num_steps): 
-    def f(x):
-        if (not isinstance(x,str)):
-            if (len(x.shape) != 1):
-                return jax.lax.dynamic_slice_in_dim(
-                    x,
-                    0,
-                    cfg.dataset.env_args["clip_length"],
-                )
-        return jp.array([])
-    
-    ref_traj = jax.tree_util.tree_map(f, env._reference_clip)
-    
-    repeats_per_frame = 1 # env._steps_for_cur_frame #int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
+def render_pair_video(qposes_rollout,qposes_ref, cfg,env,model_path,num_steps): 
+
     spec = mujoco.MjSpec()
     spec.from_file(cfg.dataset.rendering_mjcf)
-    thorax0 = spec.find_body("thorax-0")
-    first_joint0 = thorax0.first_joint()
-    if (env._free_jnt == False) & ('free' in first_joint0.name):
-        qposes_ref = np.repeat(
-            ref_traj.joints,
-            repeats_per_frame,
-            axis=0,
-        )
-        # qposes_ref = ref_traj.joints.copy()
-
-        first_joint0.delete()
-        thorax1 = spec.find_body("thorax-1")
-        first_joint1 = thorax1.first_joint()
-        first_joint1.delete()
-    elif env._free_jnt == True: 
-        # qposes_ref = np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints])
-        qposes_ref = np.repeat(
-            np.hstack([ref_traj.position, ref_traj.quaternion, ref_traj.joints]),
-            repeats_per_frame,
-            axis=0,
-        )
-        
+    # thorax0 = spec.find_body("thorax-0")
+    # first_joint0 = thorax0.first_joint()
+    # first_joint0.delete()
+    # thorax1 = spec.find_body("thorax-1")
+    # first_joint1 = thorax1.first_joint()
+    # first_joint1.delete()
     mj_model = spec.compile()
 
     mj_model.opt.solver = {
@@ -127,11 +107,6 @@ def render_pair_video(qposes_rollout,cfg,reference_clip,env,model_path,num_steps
     
     mj_data = mujoco.MjData(mj_model)
     
-    site_names = [
-        mj_model.site(i).name
-        for i in range(mj_model.nsite)
-        if "-0" in mj_model.site(i).name
-    ]
     site_id = [
         mj_model.site(i).id
         for i in range(mj_model.nsite)
@@ -162,7 +137,6 @@ def render_pair_video(qposes_rollout,cfg,reference_clip,env,model_path,num_steps
                 pixels = renderer.render()
                 video.append_data(pixels)
                 frames.append(pixels)
-
 
     wandb.log({"eval/rollout": wandb.Video(video_path, format="mp4")})
 

@@ -19,15 +19,13 @@ import hydra
 from brax.io import model
 from omegaconf import DictConfig, OmegaConf
 from brax.training.agents.ppo import networks as ppo_networks
-from custom_brax import custom_ppo as ppo
-from custom_brax import custom_wrappers
-from custom_brax import custom_ppo_networks
+from custom_brax import custom_ppo_old as ppo
+from custom_brax import custom_wrappers_old
 from orbax import checkpoint as ocp
 from flax.training import orbax_utils
 # from envs.rodent import RodentSingleClip
 from preprocessing.preprocess import process_clip_to_train
-from envs.Fly_Env_Brax import FlyTracking, FlyMultiClipTracking
-# from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run, FlyRunSim, FlyStand, Fruitfly_Freejnt
+from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run, FlyRunSim, FlyStand, Fruitfly_Freejnt
 from utils.utils import *
 from utils.fly_logging import log_eval_rollout
 
@@ -41,9 +39,12 @@ FLAGS = flags.FLAGS
 os.environ["XLA_FLAGS"] = (
     "--xla_gpu_enable_triton_softmax_fusion=true " "--xla_gpu_triton_gemm_any=True "
 )
-envs.register_environment("fly_freejnt_clip", FlyTracking)
-envs.register_environment("fly_freejnt_multiclip", FlyMultiClipTracking)
 
+envs.register_environment("fly_single_clip", Fruitfly_Tethered)
+envs.register_environment("fly_freejnt_clip", Fruitfly_Freejnt)
+envs.register_environment("fly_run", Fruitfly_Run)
+envs.register_environment("fly_run_sim", FlyRunSim)
+envs.register_environment("fly_stand", FlyStand)
 
 # Global Boolean variable that indicates that a signal has been received
 interrupted = False
@@ -73,11 +74,21 @@ def main(cfg: DictConfig) -> None:
     reference_path = cfg.paths.data_dir / f"clips/{env_cfg['clip_idx']}.p"
     reference_path.parent.mkdir(parents=True, exist_ok=True)
 
-    #### TODO: Need to handle this better
-    with open(reference_path, "rb") as file:
-        # Use pickle.load() to load the data from the file
-        reference_clip = pickle.load(file)
-
+    if os.path.exists(reference_path):
+        with open(reference_path, "rb") as file:
+            # Use pickle.load() to load the data from the file
+            reference_clip = pickle.load(file)
+    else:
+        # Process rodent clip and save as pickle
+        reference_clip = process_clip_to_train(
+            env_cfg["stac_path"],
+            start_step=env_cfg["clip_idx"] * env_args["clip_length"],
+            clip_length=env_args["clip_length"],
+            mjcf_path=env_args["mjcf_path"],
+        )
+        with open(reference_path, "wb") as file:
+            # Use pickle.dump() to save the data to the file
+            pickle.dump(reference_clip, file)
 
     ########## Handling requeuing ##########
     try: ##### TODO: Need to rework to load proper config as well. 
@@ -105,37 +116,38 @@ def main(cfg: DictConfig) -> None:
             **env_args,
         )
 
-
+        # Episode length is equal to (clip length - random init range - traj length) * steps per cur frame
+        # Will work on not hardcoding these values later
+        # episode_length = (
+        #     env_args.clip_length - 50 - env_cfg.ref_traj_length
+        # ) * env_args.physics_steps_per_control_step
         episode_length = (env_args.clip_length - 50 - env_cfg.ref_traj_length) * env._steps_for_cur_frame
         print(f"episode_length {episode_length}")
 
-
         train_fn = functools.partial(
             ppo.train,
-            num_envs=cfg.train["num_envs"],
             num_timesteps=cfg.train["num_timesteps"],
             num_evals=int(cfg.train["num_timesteps"] / cfg.train["eval_every"]),
-            num_resets_per_eval=cfg.train['num_resets_per_eval'],
-            reward_scaling=cfg.train['reward_scaling'],
+            reward_scaling=1,
             episode_length=episode_length,
             normalize_observations=True,
-            action_repeat=cfg.train['action_repeat'],
-            clipping_epsilon=cfg.train["clipping_epsilon"],
-            unroll_length=cfg.train['unroll_length'],
+            action_repeat=cfg.train["action_repeat"],
+            unroll_length=cfg.train["unroll_length"],
             num_minibatches=cfg.train["num_minibatches"],
             num_updates_per_batch=cfg.train["num_updates_per_batch"],
-            discounting=cfg.train['discounting'],
+            num_resets_per_eval=cfg.train['num_resets_per_eval'],
+            discounting=cfg.train["discounting"],
             learning_rate=cfg.train["learning_rate"],
-            kl_weight=cfg.train["kl_weight"],
-            entropy_cost=cfg.train['entropy_cost'],
+            entropy_cost=cfg.train["entropy_cost"],
+            num_envs=cfg.train["num_envs"],
             batch_size=cfg.train["batch_size"],
-            seed=cfg.train['seed'],
+            seed=cfg.seed,
             network_factory=functools.partial(
-                custom_ppo_networks.make_intention_ppo_networks,
-                encoder_hidden_layer_sizes=cfg.train['encoder_hidden_layer_sizes'],
-                decoder_hidden_layer_sizes=cfg.train['decoder_hidden_layer_sizes'],
-                value_hidden_layer_sizes=cfg.train['value_hidden_layer_sizes'],
+                ppo_networks.make_ppo_networks,
+                policy_hidden_layer_sizes=cfg.train["mlp_policy_layer_sizes"],
+                value_hidden_layer_sizes=cfg.train["mlp_policy_layer_sizes"],
             ),
+            restore_checkpoint_path=restore_checkpoint
         )
 
 
@@ -152,46 +164,37 @@ def main(cfg: DictConfig) -> None:
             f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{cfg.run_id}"
         )
 
-        init_step = True
-        correct_step_cycle = np.zeros(1, dtype=int)
-        nsteps = 0
         def wandb_progress(num_steps, metrics):
             num_steps=int(num_steps)
             metrics["num_steps"] = num_steps
             wandb.log(metrics, commit=False)
 
         # Wrap the env in the brax autoreset and episode wrappers
-        # if cfg.dataset.dname == "fly_run":
-        #     rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_Run(env)
-        # elif cfg.dataset.dname == 'fly_run_sim':
-        #     rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_RunSim(env)
-        # # elif cfg.dataset.dname == 'fly_stand':
-        # #     rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Stand(env)
-        # else:
-        rollout_env = custom_wrappers.RenderRolloutWrapperTracking(env)
+        if cfg.dataset.dname == "fly_run":
+            rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_Run(env)
+        elif cfg.dataset.dname == 'fly_run_sim':
+            rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_RunSim(env)
+        # elif cfg.dataset.dname == 'fly_stand':
+        #     rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Stand(env)
+        else:
+            rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking(env)
         # define the jit reset/step functions
         jit_reset = jax.jit(rollout_env.reset)
         jit_step = jax.jit(rollout_env.step)
 
-        def policy_params_fn(num_steps, make_policy, params, policy_params_fn_key, model_path=model_path):
-            if init_step:
-                step_size = num_steps
-                correct_step_cycle = np.arange(step_size,cfg.train.num_timesteps+step_size, step_size, dtype=int)
-                init_step = False
-                total_steps = correct_step_cycle[nsteps]
-            else:
-                total_steps = correct_step_cycle[nsteps]
-                nsteps += 1        
-
+        def policy_params_fn(num_steps, make_policy, params, model_path=model_path):
             print('num_steps:', num_steps)
+            num_steps=int(num_steps)
             ckptr = ocp.Checkpointer(ocp.PyTreeCheckpointHandler())
             save_args = orbax_utils.save_args_from_target(params)
             path = model_path / f'{num_steps}'
             os.makedirs(path, exist_ok=True)
             ckptr.save(path, params, force=True, save_args=save_args)
+            policy_params_key = jax.random.key(0)
             policy_params = (params[0],params[1].policy)
             jit_inference_fn = jax.jit(make_policy(policy_params, deterministic=True))
-            reset_rng, act_rng = jax.random.split(policy_params_fn_key)
+            _, policy_params_key = jax.random.split(policy_params_key)
+            reset_rng, act_rng = jax.random.split(policy_params_key)
 
             state = jit_reset(reset_rng)
 

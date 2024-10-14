@@ -1,18 +1,5 @@
-# Copyright 2024 The Brax Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Proximal policy optimization training.
+Copied from Brax but with custom wrappers
 
 See: https://arxiv.org/pdf/1707.06347.pdf
 """
@@ -30,15 +17,12 @@ from brax.training import pmap
 from brax.training import types
 from brax.training.acme import running_statistics
 from brax.training.acme import specs
-
-# from brax.training.agents.ppo import losses as ppo_losses
-import custom_brax.custom_losses as ppo_losses
-from custom_brax import custom_wrappers
-# from brax.training.agents.ppo import networks as ppo_networks
-from custom_brax import custom_ppo_networks
+from brax.training.agents.ppo import losses as ppo_losses
+from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.types import Params
 from brax.training.types import PRNGKey
 from brax.v1 import envs as envs_v1
+import custom_brax.custom_wrappers_old
 from etils import epath
 import flax
 import jax
@@ -88,7 +72,6 @@ def train(
     num_eval_envs: int = 128,
     learning_rate: float = 1e-4,
     entropy_cost: float = 1e-4,
-    kl_weight: float = 1e-3,
     discounting: float = 0.9,
     seed: int = 0,
     unroll_length: int = 10,
@@ -103,8 +86,8 @@ def train(
     gae_lambda: float = 0.95,
     deterministic_eval: bool = False,
     network_factory: types.NetworkFactory[
-        custom_ppo_networks.PPOImitationNetworks
-    ] = custom_ppo_networks.make_intention_ppo_networks,
+        ppo_networks.PPONetworks
+    ] = ppo_networks.make_ppo_networks,
     progress_fn: Callable[[int, Metrics], None] = lambda *args: None,
     normalize_advantage: bool = True,
     eval_env: Optional[envs.Env] = None,
@@ -113,7 +96,6 @@ def train(
         Callable[[base.System, jnp.ndarray], Tuple[base.System, base.System]]
     ] = None,
     restore_checkpoint_path: Optional[str] = None,
-
 ):
     """PPO training.
 
@@ -211,7 +193,7 @@ def train(
     local_key, key_env, eval_key = jax.random.split(local_key, 3)
     # key_networks should be global, so that networks are initialized the same
     # way for different processes.
-    key_policy, key_value, policy_params_fn_key = jax.random.split(global_key, 3)
+    key_policy, key_value = jax.random.split(global_key)
     del global_key
 
     assert num_envs % device_count == 0
@@ -224,7 +206,7 @@ def train(
         v_randomization_fn = functools.partial(randomization_fn, rng=randomization_rng)
 
     if isinstance(environment, envs.Env):
-        wrap_for_training = custom_wrappers.wrap
+        wrap_for_training = envs.training.wrap
     else:
         wrap_for_training = envs_v1.wrappers.wrap_for_training
 
@@ -244,12 +226,9 @@ def train(
     if normalize_observations:
         normalize = running_statistics.normalize
     ppo_network = network_factory(
-        env_state.obs.shape[-1],
-        int(_unpmap(env_state.info["reference_obs_size"])[0]),
-        env.action_size,
-        preprocess_observations_fn=normalize,
+        env_state.obs.shape[-1], env.action_size, preprocess_observations_fn=normalize
     )
-    make_policy = custom_ppo_networks.make_inference_fn(ppo_network)
+    make_policy = ppo_networks.make_inference_fn(ppo_network)
 
     optimizer = optax.adam(learning_rate=learning_rate)
 
@@ -257,7 +236,6 @@ def train(
         ppo_losses.compute_ppo_loss,
         ppo_network=ppo_network,
         entropy_cost=entropy_cost,
-        kl_weight=kl_weight,
         discounting=discounting,
         reward_scaling=reward_scaling,
         gae_lambda=gae_lambda,
@@ -514,13 +492,12 @@ def train(
                 ),
                 training_metrics,
             )
-            logging.info(metrics)
+            logging.info(metrics)           
             progress_fn(current_step, metrics)
             params = _unpmap(
-                (training_state.normalizer_params, training_state.params)
+                (training_state.normalizer_params, training_state.params) ##### Made to output value as well
             )
-            _, policy_params_fn_key = jax.random.split(policy_params_fn_key)
-            policy_params_fn(current_step, make_policy, params, policy_params_fn_key)
+            policy_params_fn(current_step, make_policy, params)
 
     total_steps = current_step
     assert total_steps >= num_timesteps

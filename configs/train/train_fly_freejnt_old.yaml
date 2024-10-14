@@ -9,24 +9,18 @@ note:
 num_envs: 1024 
 num_timesteps: 10_000_000_000
 eval_every: 100_000_000
-num_resets_per_eval: 1
-reward_scaling: 1
 episode_length: 1001
-normalize_observations: True
-action_repeat: 1
-clipping_epsilon: 0.2
-unroll_length: 20
+batch_size: ${train.num_envs}
+learning_rate: 1e-5
 num_minibatches: 32
 num_updates_per_batch: 8
+clipping_epsilon: 0.3
+entropy_cost: 5e-2
+action_repeat: 1
+unroll_length: 20
+num_resets_per_eval: 1
 discounting: 0.95
-learning_rate: 1e-4
-kl_weight: 1e-3
-entropy_cost: 1e-2
-batch_size: ${train.num_envs}
-seed: 0
-encoder_hidden_layer_sizes: [256, 256]
-decoder_hidden_layer_sizes: [256, 256]
-value_hidden_layer_sizes: [256, 256]
+mlp_policy_layer_sizes: [256, 256]
 restore_checkpoint: ''
 state_metric_list: 
   - pos_reward

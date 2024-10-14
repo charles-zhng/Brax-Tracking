@@ -22,8 +22,8 @@ import hydra
 from brax.io import model
 from omegaconf import DictConfig, OmegaConf
 from brax.training.agents.ppo import networks as ppo_networks
-from custom_brax import custom_ppo as ppo
-from custom_brax import custom_wrappers
+from custom_brax import custom_ppo_old as ppo
+from custom_brax import custom_wrappers_old
 from orbax import checkpoint as ocp
 from flax.training import orbax_utils
 
@@ -147,11 +147,11 @@ def main(cfg: DictConfig) -> None:
 
     # Wrap the env in the brax autoreset and episode wrappers
     if cfg.dataset.dname == "fly_run":
-        rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Run(env)
+        rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_Run(env)
     elif cfg.dataset.dname == 'fly_run_sim':
-        rollout_env = custom_wrappers.RenderRolloutWrapperTracking_RunSim(env)
+        rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_RunSim(env)
     else:
-        rollout_env = custom_wrappers.RenderRolloutWrapperTracking(env)
+        rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking(env)
     # define the jit reset/step functions
     jit_reset = jax.jit(rollout_env.reset)
     jit_step = jax.jit(rollout_env.step)

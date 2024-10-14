@@ -12,7 +12,6 @@ from utils import quaternions
 from preprocessing.preprocess import ReferenceClip
 from dm_control import mjcf as mjcf_dm
 # from dm_control.locomotion.walkers import rescale
-from typing import List
 import mujoco
 from mujoco import mjx
 from utils import io_dict_to_hdf5 as ioh5
