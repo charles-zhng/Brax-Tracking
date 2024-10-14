@@ -786,8 +786,8 @@ class Fruitfly_Freejnt(PipelineEnv):
         # # Add noise
         new_qpos = jp.concatenate((reference_frame.position, reference_frame.quaternion, reference_frame.joints))
         qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
-        # qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
-        qvel = jp.zeros((self.sys.nv))
+        qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
+        # qvel = jp.zeros((self.sys.nv))
         data = self.pipeline_init(qpos, qvel)
         data = self.pipeline_init(qpos, qvel)
 
@@ -810,6 +810,7 @@ class Fruitfly_Freejnt(PipelineEnv):
             "too_far": zero,
             "bad_pose": zero,
             "bad_quat": zero,
+            "termination": zero,
             "fall": zero,
         }
 
@@ -839,43 +840,41 @@ class Fruitfly_Freejnt(PipelineEnv):
         reference_clip = jax.tree_map(
             lambda x: x[info["cur_frame"]], self._get_reference_clip(info)
         )
+        ##### COM Position Reward #####
         pos_distance = data.qpos[:3] - reference_clip.position
         pos_reward = self._pos_reward_weight * jp.exp(-self._pos_scaling * jp.sum(pos_distance**2))
 
+        ##### COM quaternion Reward #####
         quat_distance = jp.sum(
             _bounded_quat_dist(data.qpos[3:7], reference_clip.quaternion) ** 2
         )
         quat_reward = self._quat_reward_weight * jp.exp(-self._quat_scaling * quat_distance)
 
+        ##### Joint Reward #####
         joint_distance = jp.sum((data.qpos[7:] - reference_clip.joints) ** 2)
         joint_reward = self._joint_reward_weight * jp.exp(-self._joint_scaling * joint_distance)
         info["joint_distance"] = joint_distance
 
-        angvel_reward = self._angvel_reward_weight * jp.exp(
-            -self._angvel_scaling * jp.sum((data.qvel[3:6] - reference_clip.angular_velocity) ** 2)
-        )
+        ##### Angular Velocity of COM Reward #####
+        angvel_distance = jp.sum((data.qvel[3:6] - reference_clip.angular_velocity) ** 2)
+        angvel_reward = self._angvel_reward_weight * jp.exp(-self._angvel_scaling * angvel_distance)
+        info['angvel_distance'] = angvel_distance
 
+        ###### XYZ Body Positions #####
+        bodypos_distance =  jp.sum((data.xpos[self._body_idxs]- reference_clip.body_positions[self._body_idxs]).flatten()** 2)
         bodypos_reward = self._bodypos_reward_weight * jp.exp(
             -self._bodypos_scaling
-            * jp.sum(
-                (
-                    data.xpos[self._body_idxs]
-                    - reference_clip.body_positions[self._body_idxs]
-                ).flatten()
-                ** 2
-            )
+            * bodypos_distance
         )
-
+        info['bodypos_distance'] = bodypos_distance
+        
+        ##### End Effectors Reward #####
+        endeff_distance = jp.sum((data.xpos[self._endeff_idxs]- reference_clip.body_positions[self._endeff_idxs]).flatten()** 2)
         endeff_reward = self._endeff_reward_weight * jp.exp(
             -self._endeff_scaling
-            * jp.sum(
-                (
-                    data.xpos[self._endeff_idxs]
-                    - reference_clip.body_positions[self._endeff_idxs]
-                ).flatten()
-                ** 2
+            * endeff_distance
             )
-        )
+        info['endeff_distance'] = endeff_distance
 
         min_z, max_z = self._healthy_z_range
         is_healthy = jp.where(data.xpos[self._thorax_idx][2] < min_z, 0.0, 1.0)
@@ -892,6 +891,10 @@ class Fruitfly_Freejnt(PipelineEnv):
 
         reference_obs, proprioceptive_obs = self._get_obs(data, info)
         obs = jp.concatenate([reference_obs, proprioceptive_obs])
+        # Raise done flag if terminating
+        done = jp.max(jp.array([fall, too_far, bad_pose, bad_quat]))
+
+        termination_reward = self._termination_weight*done
         reward = (
             joint_reward
             + pos_reward
@@ -899,12 +902,9 @@ class Fruitfly_Freejnt(PipelineEnv):
             + angvel_reward
             + bodypos_reward
             + endeff_reward
-            - ctrl_cost
+            + ctrl_cost
+            + termination_reward
         )
-
-        # Raise done flag if terminating
-        done = jp.max(jp.array([fall, too_far, bad_pose, bad_quat]))
-
         # Handle nans during sim by resetting env
         reward = jp.nan_to_num(reward)
         obs = jp.nan_to_num(obs)
@@ -923,10 +923,11 @@ class Fruitfly_Freejnt(PipelineEnv):
             angvel_reward=angvel_reward,
             bodypos_reward=bodypos_reward,
             endeff_reward=endeff_reward,
-            reward_ctrlcost=-ctrl_cost,
+            reward_ctrlcost=ctrl_cost,
             too_far=too_far,
             bad_pose=bad_pose,
             bad_quat=bad_quat,
+            termination=done,
             fall=fall,
         )
 

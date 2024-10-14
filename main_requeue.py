@@ -91,7 +91,7 @@ def main(cfg: DictConfig) -> None:
             pickle.dump(reference_clip, file)
 
     ########## Handling requeuing ##########
-    try:
+    try: ##### TODO: Need to rework to load proper config as well. 
         # Try to recover a state file with the relevant variables stored
         # from previous stop if any
         model_path = cfg.paths.ckpt_dir / f"./{cfg.run_id}"

@@ -9,10 +9,10 @@ note:
 num_envs: 1024 
 num_timesteps: 10_000_000_000
 eval_every: 100_000_000
-episode_length: 601
+episode_length: 1001
 batch_size: ${train.num_envs}
-learning_rate: 3e-3
-num_minibatches: 32
+learning_rate: 1.25e-3
+num_minibatches: 48
 num_updates_per_batch: 8
 clipping_epsilon: 0.2
 entropy_cost: 1e-2
@@ -32,6 +32,7 @@ state_metric_list:
   - too_far
   - bad_pose
   - bad_quat
+  - termination
   - fall
 info_metric_list: 
   - cur_frame
