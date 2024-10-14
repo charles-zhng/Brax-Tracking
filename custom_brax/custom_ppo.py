@@ -515,6 +515,7 @@ def train(
                 training_metrics,
             )
             logging.info(metrics)
+            print("current_step", current_step)
             progress_fn(current_step, metrics)
             params = _unpmap(
                 (training_state.normalizer_params, training_state.params)

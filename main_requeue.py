@@ -59,6 +59,7 @@ def signal_handler(signum, frame):
 # Register the signal handler
 signal.signal(signal.SIGTERM, signal_handler)
 
+_EVAL_STEPS = 0
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
     assert n_gpus == cfg.num_gpus, 'Number of GPUs missmatched'
@@ -89,7 +90,13 @@ def main(cfg: DictConfig) -> None:
             ckpt_files = sorted(list(model_path.glob('*[!.mp4]')))
             ##### Get the latest checkpoint #####
             max_ckpt = list(model_path.glob(f'*{max([int(file.stem) for file in ckpt_files])}'))[0]
+            _EVAL_STEPS = int(max_ckpt.stem)
             restore_checkpoint = max_ckpt.as_posix()
+            cfg = OmegaConf.load(cfg.paths.log_dir / "run_config.yaml")
+            cfg.dataset = cfg.dataset
+            cfg.dataset.env_args = cfg.dataset.env_args
+            env_cfg = cfg.dataset
+            env_args = cfg.dataset.env_args
         else:
             raise ValueError('Model path does not exist. Starting from scratch.')
     except (ValueError):
@@ -152,9 +159,7 @@ def main(cfg: DictConfig) -> None:
             f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{cfg.run_id}"
         )
 
-        init_step = True
-        correct_step_cycle = np.zeros(1, dtype=int)
-        nsteps = 0
+
         def wandb_progress(num_steps, metrics):
             num_steps=int(num_steps)
             metrics["num_steps"] = num_steps
@@ -174,19 +179,11 @@ def main(cfg: DictConfig) -> None:
         jit_step = jax.jit(rollout_env.step)
 
         def policy_params_fn(num_steps, make_policy, params, policy_params_fn_key, model_path=model_path):
-            if init_step:
-                step_size = num_steps
-                correct_step_cycle = np.arange(step_size,cfg.train.num_timesteps+step_size, step_size, dtype=int)
-                init_step = False
-                total_steps = correct_step_cycle[nsteps]
-            else:
-                total_steps = correct_step_cycle[nsteps]
-                nsteps += 1        
-
-            print('num_steps:', num_steps)
+            _EVAL_STEPS +=1
+            print(f'Eval Step: {_EVAL_STEPS}, num_steps: {num_steps}')
             ckptr = ocp.Checkpointer(ocp.PyTreeCheckpointHandler())
             save_args = orbax_utils.save_args_from_target(params)
-            path = model_path / f'{num_steps}'
+            path = model_path / f'{_EVAL_STEPS:03d}'
             os.makedirs(path, exist_ok=True)
             ckptr.save(path, params, force=True, save_args=save_args)
             policy_params = (params[0],params[1].policy)
@@ -207,8 +204,8 @@ def main(cfg: DictConfig) -> None:
             ##### Log the rollout to wandb #####
             log_eval_rollout(cfg,rollout,state,env,reference_clip,model_path,num_steps)
 
-
-        OmegaConf.save(cfg, cfg.paths.log_dir / "run_config.yaml")
+        if not (cfg.paths.log_dir / "run_config.yaml").exists():
+            OmegaConf.save(cfg, cfg.paths.log_dir / "run_config.yaml")
         print(OmegaConf.to_yaml(cfg))
         make_inference_fn, params, _ = train_fn(
             environment=env, progress_fn=wandb_progress, policy_params_fn=policy_params_fn
