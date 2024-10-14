@@ -435,10 +435,10 @@ def train(
         and epath.Path(restore_checkpoint_path).exists()
     ):
         logging.info("restoring from checkpoint %s", restore_checkpoint_path)
-        env_steps = int(epath.Path(restore_checkpoint_path).stem)
+        # env_steps = int(epath.Path(restore_checkpoint_path).stem)
         orbax_checkpointer = ocp.PyTreeCheckpointer()
-        target = training_state.normalizer_params, init_params
-        (normalizer_params, load_params) = orbax_checkpointer.restore(
+        target = training_state.normalizer_params, init_params, training_state.env_steps
+        (normalizer_params, load_params, env_steps) = orbax_checkpointer.restore(
             restore_checkpoint_path, item=target, restore_args=flax.training.orbax_utils.restore_args_from_target(target, mesh=None))
         init_params = init_params.replace(policy=load_params.policy, value=load_params.value)
         training_state = TrainingState(  # pytype: disable=wrong-arg-types  # jax-ndarray
@@ -518,7 +518,7 @@ def train(
             print("current_step", current_step)
             progress_fn(current_step, metrics)
             params = _unpmap(
-                (training_state.normalizer_params, training_state.params)
+                (training_state.normalizer_params, training_state.params,training_state.env_steps)
             )
             _, policy_params_fn_key = jax.random.split(policy_params_fn_key)
             policy_params_fn(current_step, make_policy, params, policy_params_fn_key)

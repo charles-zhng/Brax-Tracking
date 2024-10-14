@@ -59,7 +59,6 @@ def signal_handler(signum, frame):
 # Register the signal handler
 signal.signal(signal.SIGTERM, signal_handler)
 
-_EVAL_STEPS = 0
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
     assert n_gpus == cfg.num_gpus, 'Number of GPUs missmatched'
@@ -79,7 +78,7 @@ def main(cfg: DictConfig) -> None:
         # Use pickle.load() to load the data from the file
         reference_clip = pickle.load(file)
 
-
+    EVAL_STEPS = 0
     ########## Handling requeuing ##########
     try: ##### TODO: Need to rework to load proper config as well. 
         # Try to recover a state file with the relevant variables stored
@@ -90,7 +89,7 @@ def main(cfg: DictConfig) -> None:
             ckpt_files = sorted(list(model_path.glob('*[!.mp4]')))
             ##### Get the latest checkpoint #####
             max_ckpt = list(model_path.glob(f'*{max([int(file.stem) for file in ckpt_files])}'))[0]
-            _EVAL_STEPS = int(max_ckpt.stem)
+            EVAL_STEPS = int(max_ckpt.stem)
             restore_checkpoint = max_ckpt.as_posix()
             cfg = OmegaConf.load(cfg.paths.log_dir / "run_config.yaml")
             cfg.dataset = cfg.dataset
@@ -178,12 +177,12 @@ def main(cfg: DictConfig) -> None:
         jit_reset = jax.jit(rollout_env.reset)
         jit_step = jax.jit(rollout_env.step)
 
-        def policy_params_fn(num_steps, make_policy, params, policy_params_fn_key, model_path=model_path):
-            _EVAL_STEPS +=1
-            print(f'Eval Step: {_EVAL_STEPS}, num_steps: {num_steps}')
+        def policy_params_fn(num_steps, make_policy, params, policy_params_fn_key, model_path=model_path, EVAL_STEPS=EVAL_STEPS):
+            EVAL_STEPS +=1
+            print(f'Eval Step: {EVAL_STEPS}, num_steps: {num_steps}')
             ckptr = ocp.Checkpointer(ocp.PyTreeCheckpointHandler())
             save_args = orbax_utils.save_args_from_target(params)
-            path = model_path / f'{_EVAL_STEPS:03d}'
+            path = model_path / f'{EVAL_STEPS:03d}'
             os.makedirs(path, exist_ok=True)
             ckptr.save(path, params, force=True, save_args=save_args)
             policy_params = (params[0],params[1].policy)
