@@ -446,7 +446,7 @@ def train(
     if num_timesteps == 0:
         return (
             make_policy,
-            (training_state.normalizer_params, training_state.params),
+            (training_state.normalizer_params, training_state.params, training_state.env_steps),
             {},
         )
         
