@@ -58,7 +58,6 @@ def signal_handler(signum, frame):
 
 # Register the signal handler
 signal.signal(signal.SIGTERM, signal_handler)
-
 @hydra.main(version_base=None, config_path="configs", config_name="config")
 def main(cfg: DictConfig) -> None:
     assert n_gpus == cfg.num_gpus, 'Number of GPUs missmatched'
@@ -77,7 +76,7 @@ def main(cfg: DictConfig) -> None:
     with open(reference_path, "rb") as file:
         # Use pickle.load() to load the data from the file
         reference_clip = pickle.load(file)
-
+        
     EVAL_STEPS = 0
     ########## Handling requeuing ##########
     try: ##### TODO: Need to rework to load proper config as well. 
@@ -177,8 +176,9 @@ def main(cfg: DictConfig) -> None:
         jit_reset = jax.jit(rollout_env.reset)
         jit_step = jax.jit(rollout_env.step)
 
-        def policy_params_fn(num_steps, make_policy, params, policy_params_fn_key, model_path=model_path, EVAL_STEPS=EVAL_STEPS):
-            EVAL_STEPS +=1
+        def policy_params_fn(num_steps, make_policy, params, policy_params_fn_key, model_path=model_path):
+            global EVAL_STEPS
+            EVAL_STEPS = EVAL_STEPS + 1
             print(f'Eval Step: {EVAL_STEPS}, num_steps: {num_steps}')
             ckptr = ocp.Checkpointer(ocp.PyTreeCheckpointHandler())
             save_args = orbax_utils.save_args_from_target(params)
@@ -186,6 +186,7 @@ def main(cfg: DictConfig) -> None:
             os.makedirs(path, exist_ok=True)
             ckptr.save(path, params, force=True, save_args=save_args)
             policy_params = (params[0],params[1].policy)
+            Env_steps = params(2)
             jit_inference_fn = jax.jit(make_policy(policy_params, deterministic=True))
             reset_rng, act_rng = jax.random.split(policy_params_fn_key)
 

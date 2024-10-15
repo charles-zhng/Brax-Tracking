@@ -423,12 +423,6 @@ def train(
         env_steps=0,
     )
 
-    if num_timesteps == 0:
-        return (
-            make_policy,
-            (training_state.normalizer_params, training_state.params),
-            {},
-        )
 
     if (
         restore_checkpoint_path is not None
@@ -449,6 +443,13 @@ def train(
             normalizer_params=normalizer_params,
             env_steps=env_steps,)
 
+    if num_timesteps == 0:
+        return (
+            make_policy,
+            (training_state.normalizer_params, training_state.params),
+            {},
+        )
+        
     training_state = jax.device_put_replicated(
         training_state, jax.local_devices()[:local_devices_to_use]
     )

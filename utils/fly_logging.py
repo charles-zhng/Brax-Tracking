@@ -6,7 +6,7 @@ import numpy as np
 import imageio
 import jax.numpy as jp
 
-def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_steps):
+def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_steps, EVAL_STEPS=0):
     '''Log the rollout to wandb'''
 
     # Log the metrics for the rollout
