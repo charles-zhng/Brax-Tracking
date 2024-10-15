@@ -26,6 +26,7 @@ def submit(cfg: DictConfig) -> None:
 #SBATCH --gpus={cfg.num_gpus}
 #SBATCH --mem=128G
 #SBATCH --verbose  
+#SBATCH --open-mode=append
 #SBATCH -o ./OutFiles/slurm-%A_%a.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=eabe@uw.edu

@@ -68,7 +68,9 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
     )
     
     # Render the walker with the reference expert demonstration trajectory
-    os.environ["MUJOCO_GL"] = "osmesa"
+    # os.environ["MUJOCO_GL"] = "osmesa"
+    os.environ['MUJOCO_GL'] = 'egl'
+    os.environ['PYOPENGL_PLATFORM'] = 'egl'
     qposes_rollout = np.array([state.pipeline_state.qpos for state in rollout])
     
     ref_traj = env._get_reference_clip(rollout[0].info)
@@ -121,7 +123,6 @@ def render_pair_video(qposes_rollout,qposes_ref, cfg,env,model_path,num_steps):
     scene_option.flags[mujoco.mjtVisFlag.mjVIS_CONTACTFORCE] = True
 
     # save rendering and log to wandb
-    os.environ["MUJOCO_GL"] = "osmesa"
     mujoco.mj_kinematics(mj_model, mj_data)
     # renderer = mujoco.Renderer(mj_model, height=512, width=512)
 
@@ -168,7 +169,6 @@ def render_single_vid(qposes_rollout,cfg,env,model_path,num_steps):
     scene_option.sitegroup[:] = [1, 1, 1, 1, 1, 0]
 
     # save rendering and log to wandb
-    os.environ["MUJOCO_GL"] = "osmesa"
     mujoco.mj_kinematics(mj_model, mj_data)
     # renderer = mujoco.Renderer(mj_model, height=512, width=512)
 

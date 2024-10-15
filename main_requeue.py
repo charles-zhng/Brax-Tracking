@@ -1,11 +1,12 @@
 import os
 
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.90"
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.99"
+os.environ['MUJOCO_GL'] = 'egl'
+os.environ['PYOPENGL_PLATFORM'] = 'egl'
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Use GPU 1
 import functools
 import jax
 # jax.config.update("jax_enable_x64", True)
-
 n_gpus = jax.device_count(backend="gpu")
 print(f"Using {n_gpus} GPUs")
 from typing import Dict
@@ -86,9 +87,9 @@ def main(cfg: DictConfig) -> None:
         model_path = cfg.paths.ckpt_dir / f"./{cfg.run_id}"
         if model_path.exists():
             ##### Get all the checkpoint files #####
-            ckpt_files = sorted(list(model_path.glob('*[!.mp4]')))
+            ckpt_files = sorted([Path(f.path) for f in os.scandir(model_path) if f.is_dir()])
             ##### Get the latest checkpoint #####
-            max_ckpt = list(model_path.glob(f'*{max([int(file.stem) for file in ckpt_files])}'))[0]
+            max_ckpt = ckpt_files[-1]
             EVAL_STEPS = int(max_ckpt.stem)
             restore_checkpoint = max_ckpt.as_posix()
             cfg = OmegaConf.load(cfg.paths.log_dir / "run_config.yaml")
@@ -142,6 +143,7 @@ def main(cfg: DictConfig) -> None:
                 decoder_hidden_layer_sizes=cfg.train['decoder_hidden_layer_sizes'],
                 value_hidden_layer_sizes=cfg.train['value_hidden_layer_sizes'],
             ),
+            restore_checkpoint_path=restore_checkpoint
         )
 
 
