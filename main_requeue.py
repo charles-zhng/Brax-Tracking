@@ -77,6 +77,7 @@ def main(cfg: DictConfig) -> None:
         # Use pickle.load() to load the data from the file
         reference_clip = pickle.load(file)
         
+    global EVAL_STEPS
     EVAL_STEPS = 0
     ########## Handling requeuing ##########
     try: ##### TODO: Need to rework to load proper config as well. 
@@ -186,7 +187,7 @@ def main(cfg: DictConfig) -> None:
             os.makedirs(path, exist_ok=True)
             ckptr.save(path, params, force=True, save_args=save_args)
             policy_params = (params[0],params[1].policy)
-            Env_steps = params(2)
+            Env_steps = params[2]
             jit_inference_fn = jax.jit(make_policy(policy_params, deterministic=True))
             reset_rng, act_rng = jax.random.split(policy_params_fn_key)
 

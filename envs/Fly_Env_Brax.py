@@ -83,14 +83,18 @@ class FlyTracking(PipelineEnv):
         free_jnt: bool=False,
         **kwargs,
     ):
-        root = mjcf_dm.from_path(mjcf_path)
-
+        
         # Convert to torque actuators
         if torque_actuators:
-            for actuator in root.find_all("actuator"):
-                actuator.gainprm = [actuator.forcerange[1]]
-                del actuator.biastype
-                del actuator.biasprm
+            from pathlib import Path
+            mjcf_path = (Path(mjcf_path).parent / 'fruitfly_force_fast.xml').as_posix()
+            
+        root = mjcf_dm.from_path(mjcf_path)
+
+            # for actuator in root.find_all("actuator"):
+            #     actuator.gainprm = [actuator.forcerange[1]]
+            #     del actuator.biastype
+            #     del actuator.biasprm
 
 
         mj_model = mjcf_dm.Physics.from_mjcf_model(root).model.ptr
