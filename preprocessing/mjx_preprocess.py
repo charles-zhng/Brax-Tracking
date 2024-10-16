@@ -276,7 +276,7 @@ def load_reference_clip_from_h5(filename: str, clip_names: Union[List[str], str]
 
         # Stack them as jax arrays
         for key in aggregated.keys():
-            aggregated[key] = jp.stack(aggregated[key])
+            aggregated[key] = [jp.array(aggregated[key][n]) for n in range(len(aggregated[key]))]
 
         # Set the values in the ReferenceClip
         clip = clip.replace(**aggregated)
