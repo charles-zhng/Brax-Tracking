@@ -16,7 +16,7 @@
       <default class="collision">
         <geom type="capsule" contype="0" conaffinity="0" condim="1" group="4" material="blue" density="0"/>
         <default class="adhesion-collision">
-          <geom material="pink" friction="2" margin="0.0005" gap="0.0005" contype="1" conaffinity="1" condim="3"/>
+          <geom material="pink" friction="0.6" margin="0.0005" gap="0.0005" contype="1" conaffinity="1" condim="3"/>
           <site type="capsule"/>
         </default>
         <default class="collision-membrane">

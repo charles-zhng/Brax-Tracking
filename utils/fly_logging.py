@@ -154,7 +154,6 @@ def render_single_vid(qposes_rollout,cfg,env,model_path,num_steps):
         first_joint1 = thorax1.first_joint()
         first_joint1.delete()
     mj_model = spec.compile()
-    spec = mujoco.MjSpec()
 
     mj_model.opt.solver = {
         "cg": mujoco.mjtSolver.mjSOL_CG,

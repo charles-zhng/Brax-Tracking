@@ -431,29 +431,55 @@ class FlyMultiClipTracking(FlyTracking):
     def __init__(
         self,
         reference_clip,
+        body_names: List[str],
+        joint_names: List[str],
+        end_eff_names:List[str],
+        n_clips: int = 1,
+        clip_length: int = 1001,
+        mocap_hz: int = 500,
+        mjcf_path: str = "./assets/fruitfly/fruitfly_force_fast.xml",
         torque_actuators: bool = False,
+        physics_timestep: float = 2e-4,
         ref_len: int = 5,
         too_far_dist=0.1,
         bad_pose_dist=jp.inf,
         bad_quat_dist=jp.inf,
         ctrl_cost_weight=0.01,
-        pos_reward_weight=1,
-        quat_reward_weight=1,
-        joint_reward_weight=1,
-        angvel_reward_weight=1,
-        bodypos_reward_weight=1,
-        endeff_reward_weight=1,
-        healthy_z_range=(0.03, 0.5),
+        pos_reward_weight=1.0,
+        quat_reward_weight=1.0,
+        joint_reward_weight=1.0,
+        angvel_reward_weight=1.0,
+        bodypos_reward_weight=1.0,
+        endeff_reward_weight=1.0,
+        pos_scaling=400.0,
+        quat_scaling=4.0,
+        joint_scaling=0.25,
+        angvel_scaling=0.5,
+        bodypos_scaling=8.0,
+        endeff_scaling=500.0,
+        healthy_z_range=(-0.03, 0.1),
         physics_steps_per_control_step=10,
-        reset_noise_scale=0.001,
+        reset_noise_scale=1e-3,
         solver="cg",
         iterations: int = 6,
         ls_iterations: int = 6,
+        inference_mode: bool = False,
+        free_jnt: bool=False,
+        clip_starts: List[int] = [0],
+        clip_lengths: List[int] = [0],
         **kwargs,
     ):
         super().__init__(
             None,
+            body_names,
+            joint_names,
+            end_eff_names,
+            n_clips,
+            clip_length,
+            mocap_hz,
+            mjcf_path,
             torque_actuators,
+            physics_timestep,
             ref_len,
             too_far_dist,
             bad_pose_dist,
@@ -465,12 +491,20 @@ class FlyMultiClipTracking(FlyTracking):
             angvel_reward_weight,
             bodypos_reward_weight,
             endeff_reward_weight,
+            pos_scaling,
+            quat_scaling,
+            joint_scaling,
+            angvel_scaling,
+            bodypos_scaling,
+            endeff_scaling,
             healthy_z_range,
             physics_steps_per_control_step,
             reset_noise_scale,
             solver,
             iterations,
             ls_iterations,
+            inference_mode,
+            free_jnt,
             **kwargs,
         )
 
@@ -493,8 +527,22 @@ class FlyMultiClipTracking(FlyTracking):
         }
 
         return self.reset_from_clip(rng, info)
+    
+    # def _get_reference_clip(self, info) -> ReferenceClip:
+    #     """Gets clip based on info["clip_idx"]"""
+    #     def f(x):
+    #         if len(x.shape) != 1:
+    #             start = self._clip_starts[info["clip_idx"]]
+    #             end = self._clip_lengths[info["clip_idx"]]
+    #             return jax.lax.dynamic_slice_in_dim(
+    #                 x,
+    #                 start,
+    #                 end,
+    #             )
+    #         return jp.array([])
+
+    #     return jax.tree_util.tree_map(f, self._reference_clips)
 
     def _get_reference_clip(self, info) -> ReferenceClip:
         """Gets clip based on info["clip_idx"]"""
-
         return jax.tree_map(lambda x: x[info["clip_idx"]], self._reference_clips)
