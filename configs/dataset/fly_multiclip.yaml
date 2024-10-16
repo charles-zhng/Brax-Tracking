@@ -12,7 +12,7 @@ env_args:
   solver: cg
   iterations: 6
   ls_iterations: 6
-  torque_actuators: False
+  torque_actuators: True
   physics_steps_per_control_step: 10
   too_far_dist: 0.01
   bad_pose_dist: 5.0 
@@ -35,8 +35,6 @@ env_args:
   ref_len: 5
   free_jnt: True
   inference_mode: False
-  clip_starts: [0, 1001, 2002, 2743, 3024, 3425, 3906, 4407, 4668, 5009, 6010, 6791, 7272, 7773, 8074, 8375, 8796, 9489]
-  clip_lengths: [1001, 1001, 741, 281, 401, 481, 501, 261, 341, 1001, 781, 481, 501, 301, 301, 421, 693]
   end_eff_names:
     - claw_T1_left
     - claw_T1_right

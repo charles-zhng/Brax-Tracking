@@ -214,7 +214,7 @@ class FlyTracking(PipelineEnv):
         #     rng1, (self.sys.nq,), minval=low, maxval=hi
         # )
         # qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
-        new_qpos = jp.concatenate((reference_frame.position, reference_frame.quaternion, reference_frame.joints))
+        new_qpos = jp.concatenate((reference_frame.position, reference_frame.quaternion, reference_frame.joints),axis=0)
         qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
         qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
         # qvel = jp.zeros((self.sys.nv))
@@ -465,8 +465,6 @@ class FlyMultiClipTracking(FlyTracking):
         ls_iterations: int = 6,
         inference_mode: bool = False,
         free_jnt: bool=False,
-        clip_starts: List[int] = [0],
-        clip_lengths: List[int] = [0],
         **kwargs,
     ):
         super().__init__(
@@ -524,24 +522,12 @@ class FlyMultiClipTracking(FlyTracking):
             "summed_pos_distance": 0.0,
             "quat_distance": 0.0,
             "joint_distance": 0.0,
+            "angvel_distance": 0.0,
+            "bodypos_distance": 0.0,
+            "endeff_distance": 0.0,
         }
 
         return self.reset_from_clip(rng, info)
-    
-    # def _get_reference_clip(self, info) -> ReferenceClip:
-    #     """Gets clip based on info["clip_idx"]"""
-    #     def f(x):
-    #         if len(x.shape) != 1:
-    #             start = self._clip_starts[info["clip_idx"]]
-    #             end = self._clip_lengths[info["clip_idx"]]
-    #             return jax.lax.dynamic_slice_in_dim(
-    #                 x,
-    #                 start,
-    #                 end,
-    #             )
-    #         return jp.array([])
-
-    #     return jax.tree_util.tree_map(f, self._reference_clips)
 
     def _get_reference_clip(self, info) -> ReferenceClip:
         """Gets clip based on info["clip_idx"]"""
