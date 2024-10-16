@@ -160,7 +160,6 @@ model_checkpoints/
 .ipynb_checkpoints
 OutFiles/
 # *.ipynb
-Env_Testing_Fly01.ipynb
 .vscode/
 Archive/
 wandb/
