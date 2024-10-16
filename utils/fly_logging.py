@@ -90,7 +90,7 @@ def log_eval_rollout(cfg, rollout, state, env, reference_clip, model_path, num_s
 def render_pair_video(qposes_rollout,qposes_ref, cfg,env,model_path,num_steps): 
 
     spec = mujoco.MjSpec()
-    spec.from_file(cfg.dataset.rendering_mjcf)
+    spec = spec.from_file(cfg.dataset.rendering_mjcf)
     # thorax0 = spec.find_body("thorax-0")
     # first_joint0 = thorax0.first_joint()
     # first_joint0.delete()
@@ -145,7 +145,7 @@ def render_pair_video(qposes_rollout,qposes_ref, cfg,env,model_path,num_steps):
 def render_single_vid(qposes_rollout,cfg,env,model_path,num_steps):
     repeats_per_frame = 1 #int(1/(env._mocap_hz*env.sys.mj_model.opt.timestep))
     spec = mujoco.MjSpec()
-    spec.from_file(cfg.dataset.rendering_mjcf)
+    spec = spec.from_file(cfg.dataset.rendering_mjcf)
     thorax0 = spec.find_body("thorax")
     first_joint0 = thorax0.first_joint()
     if (env._free_jnt == False) & ('free' in first_joint0.name):
