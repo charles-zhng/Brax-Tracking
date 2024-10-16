@@ -418,7 +418,7 @@ class FlyTracking(PipelineEnv):
             height: int = 320,
             scene_option: Any = None,
         ) -> Sequence[np.ndarray]:
-            camera = camera or "track"
+            camera = camera or "track1"
             return super().render(
                 trajectory,
                 camera=camera,

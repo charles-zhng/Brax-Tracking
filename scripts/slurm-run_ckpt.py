@@ -30,7 +30,7 @@ def submit(cfg: DictConfig) -> None:
 #SBATCH -o ./OutFiles/slurm-%A_%a.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=eabe@uw.edu
-#SBATCH --exclude=g3090,g3107
+#SBATCH --exclude=g3090,g3107,g3097
 module load cuda/12.4.1
 set -x
 source ~/.bashrc

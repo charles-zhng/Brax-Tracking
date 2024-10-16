@@ -7,6 +7,7 @@ version: ''
 seed: 42
 num_gpus: ''
 run_id: ''
+load_jobid: ''
 
 # train: train_${dataset.dname}
 

@@ -63,6 +63,12 @@ signal.signal(signal.SIGTERM, signal_handler)
 def main(cfg: DictConfig) -> None:
     assert n_gpus == cfg.num_gpus, 'Number of GPUs missmatched'
     print('run_id:', cfg.run_id)
+    if ('load_jobid' in cfg) and (cfg['load_jobid'] is not None) and (cfg['load_jobid'] !=''):
+        run_id = cfg.load_jobid
+        load_cfg_path = Path(cfg.paths.base_dir) / f'run_id={run_id}/logs/run_config.yaml'
+        cfg = OmegaConf.load(load_cfg_path)
+    else:
+        run_id = cfg.run_id
     # Create paths if they don't exist and Path objects
     for k in cfg.paths.keys():
         if k != "user":
@@ -81,10 +87,10 @@ def main(cfg: DictConfig) -> None:
     global EVAL_STEPS
     EVAL_STEPS = 0
     ########## Handling requeuing ##########
-    try: ##### TODO: Need to rework to load proper config as well. 
+    try: #
         # Try to recover a state file with the relevant variables stored
         # from previous stop if any
-        model_path = cfg.paths.ckpt_dir / f"./{cfg.run_id}"
+        model_path = cfg.paths.ckpt_dir / f"./{run_id}"
         if model_path.exists():
             ##### Get all the checkpoint files #####
             ckpt_files = sorted([Path(f.path) for f in os.scandir(model_path) if f.is_dir()])
@@ -97,6 +103,7 @@ def main(cfg: DictConfig) -> None:
             cfg.dataset.env_args = cfg.dataset.env_args
             env_cfg = cfg.dataset
             env_args = cfg.dataset.env_args
+            print(f'Loading: {max_ckpt}')
         else:
             raise ValueError('Model path does not exist. Starting from scratch.')
     except (ValueError):
@@ -152,12 +159,12 @@ def main(cfg: DictConfig) -> None:
             project=cfg.train.wandb_project,
             config=OmegaConf.to_container(cfg),
             notes=cfg.train.note,
-            id=f'{cfg.run_id}',
+            id=f'{run_id}',
             resume="allow",
         )
 
         wandb.run.name = (
-            f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{cfg.run_id}"
+            f"{env_cfg['name']}_{cfg.train['task_name']}_{cfg.train['algo_name']}_{run_id}"
         )
 
 
