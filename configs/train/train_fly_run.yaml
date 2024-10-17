@@ -8,7 +8,7 @@ task_name: ${dataset.dname}
 note: 
 num_envs: 1024 
 num_timesteps: 10_000_000_000
-eval_every: 200_000_000
+eval_every: 50_000_000
 num_resets_per_eval: 1
 reward_scaling: 1
 episode_length: 1001
@@ -30,23 +30,13 @@ value_hidden_layer_sizes: [256, 256]
 restore_checkpoint: '${paths.ckpt_dir}/run_id=21402781/ckpt/21402781/052'
 freeze_encoder: True
 state_metric_list: 
-  - pos_reward
-  - quat_reward
-  - joint_reward
-  - angvel_reward
-  - bodypos_reward
-  - endeff_reward
-  - reward_ctrlcost
-  - too_far
-  - bad_pose
-  - bad_quat
+  - total_dist
+  - tracking_lin_vel
+  - ang_vel_xy
+  - lin_vel_z
+  - orientation
+  - torques
+  - action_rate
+  - stand_still
   - termination
-  - fall
-info_metric_list: 
-  - cur_frame
-  - summed_pos_distance
-  - quat_distance
-  - joint_distance
-  - angvel_distance
-  - bodypos_distance
-  - endeff_distance
+info_metric_list: []

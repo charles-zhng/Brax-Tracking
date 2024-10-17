@@ -91,6 +91,7 @@ def main(cfg: DictConfig) -> None:
     ########## Handling requeuing ##########
     if ('restore_checkpoint' in cfg) and (cfg['load_restore_checkpointjobid'] is not None) and (cfg['restore_checkpoint'] !=''):
         restore_checkpoint = cfg.restore_checkpoint
+        print('Loading from ckpt:', restore_checkpoint)
     else: 
         try: #
             # Try to recover a state file with the relevant variables stored
@@ -130,7 +131,7 @@ def main(cfg: DictConfig) -> None:
             return PPONetworkParams(mask,value)
 
 
-        episode_length = (env_args.clip_length - 50 - env_args.ref_traj_length) * env._steps_for_cur_frame
+        episode_length = (env_args.clip_length - 50 - env_args.ref_len) * env._steps_for_cur_frame
         print(f"episode_length {episode_length}")
 
 

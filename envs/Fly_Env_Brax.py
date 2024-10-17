@@ -545,13 +545,18 @@ class FlyRunSim(PipelineEnv):
         joint_names: List[str],
         end_eff_names:List[str],
         mjcf_path: str = "./assets/fruitfly/fruitfly_force_fast.xml",
-        clip_length: int = 250,
+        clip_length: int = 1000,
         obs_noise: float = 0.05,
         ctrl_cost_weight=0.01,
-        tracking_lin_vel_weight=1.0,
+        tracking_lin_vel_weight=1.5,
+        tracking_ang_vel_weight= 0.8,
         lin_vel_z_weight=-2.0,
         ang_vel_xy_weight=-0.05,
-        orientation_weight=-1.0,
+        orientation_weight=-5.0,
+        torques_weight=-0.0002,
+        action_rate_weight=-0.01,
+        stand_still_weight=-0.5,
+        termination_weight=-1.0,
         healthy_z_range=(-0.05, 0.1),
         physics_steps_per_control_step=10,
         reset_noise_scale=1e-3,
@@ -621,20 +626,30 @@ class FlyRunSim(PipelineEnv):
                 for body in end_eff_names
             ]
         )
+        self._default_pose = self.sys.qpos0[7:]
+        
         self._nv = sys.nv
         self._nq = sys.nq
         self._nu = sys.nu
         self._n_clips = 1
+        self._clip_length = clip_length
         self._ref_len = ref_len
+        self._ref_dim = (7 + self._nu)*self._ref_len
+        self._prop_dim = self._nv + self._nq
         self._reference_clips = reference_clip
         self._reset_noise_scale = reset_noise_scale
         self._physics_timestep = physics_timestep
         self._free_jnt = free_jnt
         self._inference_mode = inference_mode
         self._tracking_lin_vel_weight = tracking_lin_vel_weight
+        self._tracking_ang_vel_weight = tracking_ang_vel_weight
         self._lin_vel_z_weight = lin_vel_z_weight
         self._ang_vel_xy_weight = ang_vel_xy_weight
         self._orientation_weight = orientation_weight
+        self._torques_weight = torques_weight
+        self._action_rate_weight = action_rate_weight
+        self._stand_still_weight = stand_still_weight
+        self._termination_weight = termination_weight
         self._ctrl_cost_weight = ctrl_cost_weight
         self._healthy_z_range = healthy_z_range
         self._reset_noise_scale = reset_noise_scale
@@ -660,13 +675,19 @@ class FlyRunSim(PipelineEnv):
 
     def reset_from_clip(self, rng, info) -> State:
         """Reset based on a reference clip."""
-        _, rng1, rng2 = jax.random.split(rng, 3)
+        rng0, rng1, rng2 = jax.random.split(rng, 3)
         
         ##### Handle Additional Info #####
         if 'command' not in info:
             info['command'] = jp.zeros(3)
         if 'last_act' not in info:
             info['last_act'] = jp.zeros(self._nu)
+        if 'last_vel' not in info:
+            info['last_vel'] = jp.zeros(self._nv-6)
+        if 'rng' not in info:
+            info['rng'] = rng0
+        if 'step' not in info:
+            info['step'] = 0
             
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
@@ -676,7 +697,7 @@ class FlyRunSim(PipelineEnv):
         qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
 
         data = self.pipeline_init(qpos, qvel)
-        obs_history = jp.zeros((7 + self._nu)*self._ref_len)
+        obs_history = jp.zeros(self._ref_dim+self._prop_dim)
         reference_obs, proprioceptive_obs = self._get_obs(data, info, obs_history)
 
         # Used to intialize our intention network
@@ -686,16 +707,15 @@ class FlyRunSim(PipelineEnv):
 
         reward, done, zero = jp.zeros(3)
         metrics = {
-            "forward_reward": zero,
-            "reward_quadctrl": zero,
-            "reward_alive": zero,
-            "x_position": zero,
-            "y_position": zero,
-            "xy_ang_reward": zero,
-            "orientation": zero,
-            "distance_from_origin": zero,
-            "x_velocity": zero,
-            "y_velocity": zero,
+            'total_dist': zero,
+            'tracking_lin_vel': zero,
+            'ang_vel_xy': zero,
+            'lin_vel_z': zero,
+            'orientation': zero,
+            'torques': zero,
+            'action_rate': zero,
+            'stand_still': zero,
+            'termination': zero,
         }
         return State(data, obs, reward, done, metrics, info)
     
@@ -716,13 +736,12 @@ class FlyRunSim(PipelineEnv):
         fall = 1.0 - is_healthy
         
         joint_angles = data.q[7:]
-        joint_vel = data.qd[1:]  ##### need to restrict to only legs
+        joint_vel = data.qd[7:]  ##### need to restrict to only legs
         x, xd = data.x, data.xd
         
-        obs = self._get_obs(data, info, state.obs)
-        # Handle nans during sim by resetting env
-        reward = jp.nan_to_num(reward)
-        obs = jp.nan_to_num(obs)
+        reference_obs, proprioceptive_obs= self._get_obs(data, info, state.obs)
+        obs = jp.concatenate([reference_obs, proprioceptive_obs])
+
 
         from jax.flatten_util import ravel_pytree
         flattened_vals, _ = ravel_pytree(data)
@@ -731,7 +750,8 @@ class FlyRunSim(PipelineEnv):
         done = jp.max(jp.array([nan, fall]))
 
         command = self.sample_command(info["rng"])
-        tracking_lin_vel = (self._tracking_lin_vel_weight* self._reward_tracking_lin_vel(command, x, xd))
+        tracking_lin_vel = (self._tracking_lin_vel_weight * self._reward_tracking_lin_vel(command, x, xd))
+        tracking_ang_vel = self._tracking_ang_vel_weight * self._reward_tracking_ang_vel(info['command'], x, xd)
         ang_vel_xy = self._ang_vel_xy_weight * self._reward_ang_vel_xy(xd)
         lin_vel_z = self._lin_vel_z_weight * self._reward_lin_vel_z(xd)
         orientation = self._orientation_weight * self._reward_orientation(x)
@@ -742,6 +762,7 @@ class FlyRunSim(PipelineEnv):
         
         reward = (
             tracking_lin_vel
+            + tracking_ang_vel
             + ang_vel_xy
             + lin_vel_z
             + orientation
@@ -769,7 +790,7 @@ class FlyRunSim(PipelineEnv):
             info['command'],
         )
         # reset the step counter when done
-        info["step"] = jp.where(done | (info["step"] > self._clip_len), 0, info["step"])
+        info["step"] = jp.where((done>0.5) | (info["step"] > self._clip_length), 0, info["step"])
 
 
         state.metrics.update(
@@ -805,16 +826,16 @@ class FlyRunSim(PipelineEnv):
             info['command'] * jp.array([2.0, 2.0, 0.25]),  # command (3)
             info['last_act'],                              # last action (self.nu)
         ])
-        reference_obs = jp.roll(obs_history, obs.size).at[:obs.size].set(obs)
+        reference_obs = jp.roll(obs_history, obs.size).at[:obs.size,:self._ref_dim].set(obs)
 
-        prorioceptive_obs = jp.concatenate(
+        proprioceptive_obs = jp.concatenate(
             [
                 data.qpos,
                 data.qvel,
             ]
         )
         
-        return reference_obs, prorioceptive_obs
+        return reference_obs, proprioceptive_obs
         
     def sample_command(self, rng: jax.Array) -> jax.Array:
         lin_vel_x = [0.02, 0.2]  # min max [m/s]
@@ -885,7 +906,7 @@ class FlyRunSim(PipelineEnv):
         )
 
     def _reward_termination(self, done: jax.Array, step: jax.Array) -> jax.Array:
-        return done & (step < 1000)
+        return (done<0.5) & (step < self._clip_length)
 
     def render(
         self,

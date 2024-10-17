@@ -260,6 +260,7 @@ def train(
                      },
                     freeze_fn()
                     )
+        logging.info("Freezing layers")
     else:
         optimizer = optax.adam(learning_rate=learning_rate)
 
