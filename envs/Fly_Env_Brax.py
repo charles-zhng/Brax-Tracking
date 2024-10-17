@@ -683,7 +683,7 @@ class FlyRunSim(PipelineEnv):
         if 'last_act' not in info:
             info['last_act'] = jp.zeros(self._nu)
         if 'last_vel' not in info:
-            info['last_vel'] = jp.zeros(self._nv-6)
+            info['last_vel'] = jp.zeros(self._nv-7)
         if 'rng' not in info:
             info['rng'] = rng0
         if 'step' not in info:
@@ -697,7 +697,7 @@ class FlyRunSim(PipelineEnv):
         qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
 
         data = self.pipeline_init(qpos, qvel)
-        obs_history = jp.zeros(self._ref_dim+self._prop_dim)
+        obs_history = jp.zeros(self._ref_dim)
         reference_obs, proprioceptive_obs = self._get_obs(data, info, obs_history)
 
         # Used to intialize our intention network
@@ -814,7 +814,9 @@ class FlyRunSim(PipelineEnv):
         """Observes rodent body position, velocities, and angles."""
         
         if obs_history is None:
-            obs_history = jp.zeros((7 + self._nu)*self._ref_len)
+            obs_history = jp.zeros(self._ref_dim)
+        else:
+            obs_history = obs_history[:self._ref_dim]
             
         inv_torso_rot = brax_math.quat_inv(data.x.rot[0])
         local_rpyrate = brax_math.rotate(data.xd.ang[0], inv_torso_rot)
@@ -826,7 +828,7 @@ class FlyRunSim(PipelineEnv):
             info['command'] * jp.array([2.0, 2.0, 0.25]),  # command (3)
             info['last_act'],                              # last action (self.nu)
         ])
-        reference_obs = jp.roll(obs_history, obs.size).at[:obs.size,:self._ref_dim].set(obs)
+        reference_obs = jp.roll(obs_history, obs.size).at[:obs.size].set(obs)
 
         proprioceptive_obs = jp.concatenate(
             [
