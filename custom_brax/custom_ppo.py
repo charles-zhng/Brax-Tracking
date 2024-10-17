@@ -112,6 +112,7 @@ def train(
     randomization_fn: Optional[
         Callable[[base.System, jnp.ndarray], Tuple[base.System, base.System]]
     ] = None,
+    freeze_fn: Optional[Callable] = None,
     restore_checkpoint_path: Optional[str] = None,
 
 ):
@@ -251,7 +252,16 @@ def train(
     )
     make_policy = custom_ppo_networks.make_inference_fn(ppo_network)
 
-    optimizer = optax.adam(learning_rate=learning_rate)
+    if freeze_fn is not None:
+        optimizer = optax.multi_transform(
+                    {
+                     'encoder': optax.adam(learning_rate=learning_rate), 
+                     'decoder': optax.set_to_zero()
+                     },
+                    freeze_fn()
+                    )
+    else:
+        optimizer = optax.adam(learning_rate=learning_rate)
 
     loss_fn = functools.partial(
         ppo_losses.compute_ppo_loss,
@@ -279,7 +289,6 @@ def train(
         (_, metrics), params, optimizer_state = gradient_update_fn(
             params, normalizer_params, data, key_loss, optimizer_state=optimizer_state
         )
-
         return (optimizer_state, params, key), metrics
 
     def sgd_step(
@@ -361,6 +370,7 @@ def train(
             normalizer_params=normalizer_params,
             env_steps=training_state.env_steps + env_step_per_training_step,
         )
+        jax.debug.print('{}',params.policy['params']['encoder']['hidden_1']['bias'])
         return (new_training_state, state, new_key), metrics
 
     def training_epoch(
@@ -423,7 +433,6 @@ def train(
         env_steps=0,
     )
 
-
     if (
         restore_checkpoint_path is not None
         and epath.Path(restore_checkpoint_path).exists()
@@ -434,7 +443,11 @@ def train(
         target = training_state.normalizer_params, init_params, training_state.env_steps
         (normalizer_params, load_params, env_steps) = orbax_checkpointer.restore(
             restore_checkpoint_path, item=target, restore_args=flax.training.orbax_utils.restore_args_from_target(target, mesh=None))
-        init_params = init_params.replace(policy=load_params.policy, value=load_params.value)
+        if freeze_fn is not None:
+            load_params.policy['params']['encoder'] = init_params.policy['params']['encoder']
+            init_params = init_params.replace(policy=load_params.policy, value=load_params.value)
+        else:
+            init_params = init_params.replace(policy=load_params.policy, value=load_params.value)
         training_state = TrainingState(  # pytype: disable=wrong-arg-types  # jax-ndarray
             optimizer_state=optimizer.init(
                 init_params

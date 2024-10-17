@@ -1,8 +1,8 @@
-name: train_fly_multiclip
+name: train_fly_run
 version: ${resolve_default:debug,${..version}}
 gpu: ${resolve_default:0,${..gpu}}
 wandb_project: "eabe_debug"
-env_name: fly_freejnt_multiclip
+env_name: fly_run_policy
 algo_name: ppo
 task_name: ${dataset.dname}
 note: 
@@ -27,8 +27,8 @@ seed: 0
 encoder_hidden_layer_sizes: [256, 256]
 decoder_hidden_layer_sizes: [256, 256]
 value_hidden_layer_sizes: [256, 256]
-restore_checkpoint: ''
-freeze_encoder: False
+restore_checkpoint: '${paths.ckpt_dir}/run_id=21402781/ckpt/21402781/052'
+freeze_encoder: True
 state_metric_list: 
   - pos_reward
   - quat_reward

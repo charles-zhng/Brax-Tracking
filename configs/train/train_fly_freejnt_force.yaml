@@ -28,6 +28,7 @@ encoder_hidden_layer_sizes: [256, 256]
 decoder_hidden_layer_sizes: [256, 256]
 value_hidden_layer_sizes: [256, 256]
 restore_checkpoint: ''
+freeze_encoder: False
 state_metric_list: 
   - pos_reward
   - quat_reward

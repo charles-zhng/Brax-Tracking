@@ -27,7 +27,7 @@ from orbax import checkpoint as ocp
 from flax.training import orbax_utils
 # from envs.rodent import RodentSingleClip
 from preprocessing.preprocess import process_clip_to_train
-from envs.Fly_Env_Brax import FlyTracking, FlyMultiClipTracking
+from envs.Fly_Env_Brax import FlyTracking, FlyMultiClipTracking, FlyRunSim
 # from envs.fruitfly import Fruitfly_Tethered, Fruitfly_Run, FlyRunSim, FlyStand, Fruitfly_Freejnt
 from utils.utils import *
 from utils.fly_logging import log_eval_rollout
@@ -44,6 +44,7 @@ os.environ["XLA_FLAGS"] = (
 )
 envs.register_environment("fly_freejnt_clip", FlyTracking)
 envs.register_environment("fly_freejnt_multiclip", FlyMultiClipTracking)
+envs.register_environment("fly_run_policy", FlyRunSim)
 
 
 # Global Boolean variable that indicates that a signal has been received
@@ -88,29 +89,32 @@ def main(cfg: DictConfig) -> None:
     global EVAL_STEPS
     EVAL_STEPS = 0
     ########## Handling requeuing ##########
-    try: #
-        # Try to recover a state file with the relevant variables stored
-        # from previous stop if any
-        model_path = cfg.paths.ckpt_dir / f"./{run_id}"
-        if model_path.exists():
-            ##### Get all the checkpoint files #####
-            ckpt_files = sorted([Path(f.path) for f in os.scandir(model_path) if f.is_dir()])
-            ##### Get the latest checkpoint #####
-            max_ckpt = ckpt_files[-1]
-            EVAL_STEPS = int(max_ckpt.stem)
-            restore_checkpoint = max_ckpt.as_posix()
-            cfg = OmegaConf.load(cfg.paths.log_dir / "run_config.yaml")
-            cfg.dataset = cfg.dataset
-            cfg.dataset.env_args = cfg.dataset.env_args
-            env_cfg = cfg.dataset
-            env_args = cfg.dataset.env_args
-            print(f'Loading: {max_ckpt}')
-        else:
-            raise ValueError('Model path does not exist. Starting from scratch.')
-    except (ValueError):
-        # Otherwise bootstrap (start from scratch)
-        print('Model path does not exist. Starting from scratch.')
-        restore_checkpoint = None
+    if ('restore_checkpoint' in cfg) and (cfg['load_restore_checkpointjobid'] is not None) and (cfg['restore_checkpoint'] !=''):
+        restore_checkpoint = cfg.restore_checkpoint
+    else: 
+        try: #
+            # Try to recover a state file with the relevant variables stored
+            # from previous stop if any
+            model_path = cfg.paths.ckpt_dir / f"./{run_id}"
+            if model_path.exists():
+                ##### Get all the checkpoint files #####
+                ckpt_files = sorted([Path(f.path) for f in os.scandir(model_path) if f.is_dir()])
+                ##### Get the latest checkpoint #####
+                max_ckpt = ckpt_files[-1]
+                EVAL_STEPS = int(max_ckpt.stem)
+                restore_checkpoint = max_ckpt.as_posix()
+                cfg = OmegaConf.load(cfg.paths.log_dir / "run_config.yaml")
+                cfg.dataset = cfg.dataset
+                cfg.dataset.env_args = cfg.dataset.env_args
+                env_cfg = cfg.dataset
+                env_args = cfg.dataset.env_args
+                print(f'Loading: {max_ckpt}')
+            else:
+                raise ValueError('Model path does not exist. Starting from scratch.')
+        except (ValueError):
+            # Otherwise bootstrap (start from scratch)
+            print('Model path does not exist. Starting from scratch.')
+            restore_checkpoint = None
 
     while not interrupted and not converged:
         # Init env
@@ -119,9 +123,14 @@ def main(cfg: DictConfig) -> None:
             reference_clip=reference_clip,
             **env_args,
         )
+        def create_mask():
+            from custom_brax.custom_losses import PPONetworkParams
+            mask = {'params': {'encoder': 'encoder', 'decoder': 'decoder'}}
+            value = {'params': 'encoder'}
+            return PPONetworkParams(mask,value)
 
 
-        episode_length = (env_args.clip_length - 50 - env_cfg.ref_traj_length) * env._steps_for_cur_frame
+        episode_length = (env_args.clip_length - 50 - env_args.ref_traj_length) * env._steps_for_cur_frame
         print(f"episode_length {episode_length}")
 
 
@@ -151,7 +160,8 @@ def main(cfg: DictConfig) -> None:
                 decoder_hidden_layer_sizes=cfg.train['decoder_hidden_layer_sizes'],
                 value_hidden_layer_sizes=cfg.train['value_hidden_layer_sizes'],
             ),
-            restore_checkpoint_path=restore_checkpoint
+            restore_checkpoint_path=restore_checkpoint,
+            freeze_fn=create_mask if cfg.train['freeze_encoder'] == False else None,
         )
 
 
@@ -175,13 +185,6 @@ def main(cfg: DictConfig) -> None:
             wandb.log(metrics, commit=False)
 
         # Wrap the env in the brax autoreset and episode wrappers
-        # if cfg.dataset.dname == "fly_run":
-        #     rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_Run(env)
-        # elif cfg.dataset.dname == 'fly_run_sim':
-        #     rollout_env = custom_wrappers_old.RenderRolloutWrapperTracking_RunSim(env)
-        # # elif cfg.dataset.dname == 'fly_stand':
-        # #     rollout_env = custom_wrappers.RenderRolloutWrapperTracking_Stand(env)
-        # else:
         rollout_env = custom_wrappers.RenderRolloutWrapperTracking(env)
         # define the jit reset/step functions
         jit_reset = jax.jit(rollout_env.reset)
@@ -225,6 +228,11 @@ def main(cfg: DictConfig) -> None:
         final_save_path = Path(f"{model_path}")/f'brax_ppo_{cfg.dataset.name}_run_finished'
         model.save_params(final_save_path, params)
         print(f'Run finished. Model saved to {final_save_path}')
+        ckptr = ocp.Checkpointer(ocp.PyTreeCheckpointHandler())
+        save_args = orbax_utils.save_args_from_target(params)
+        path = model_path / f'{EVAL_STEPS:03d}'
+        os.makedirs(path, exist_ok=True)
+        ckptr.save(path, params, force=True, save_args=save_args)
     
     # Save current state 
     # if interrupted:
