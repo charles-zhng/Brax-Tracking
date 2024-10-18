@@ -98,3 +98,5 @@ if __name__ == "__main__":
 #### cancel all jobs: squeue -u $USER -h | awk '{print $1}' | xargs scancel
 # python scripts/slurm-run_ckpt_new.py --dataset=fly_freejnt --num_envs=2048 --note='hyak_ckpt'
 # python scripts/slurm-run_ckpt_new.py --partition=gpu-l40s --dataset=fly_freejnt --num_envs=2048 --num_gpus=2 --note='hyak'
+
+# python scripts/slurm-run_ckpt_new.py --train=train_fly_run --dataset=fly_run --num_envs=2048 --note='hyak_ckpt'

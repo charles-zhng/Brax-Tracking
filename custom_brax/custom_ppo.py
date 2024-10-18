@@ -371,7 +371,6 @@ def train(
             normalizer_params=normalizer_params,
             env_steps=training_state.env_steps + env_step_per_training_step,
         )
-        jax.debug.print('{}',params.policy['params']['encoder']['hidden_1']['bias'])
         return (new_training_state, state, new_key), metrics
 
     def training_epoch(
