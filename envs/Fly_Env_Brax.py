@@ -560,6 +560,7 @@ class FlyRunSim(PipelineEnv):
         healthy_z_range=(-0.05, 0.1),
         physics_steps_per_control_step=10,
         reset_noise_scale=1e-3,
+        action_scale: float=1.0,
         physics_timestep: float = 2e-4,
         solver="cg",
         iterations: int = 6,
@@ -627,7 +628,7 @@ class FlyRunSim(PipelineEnv):
             ]
         )
         self._default_pose = self.sys.qpos0[7:]
-        
+        self._action_scale = action_scale
         self._nv = sys.nv
         self._nq = sys.nq
         self._nu = sys.nu
@@ -678,17 +679,18 @@ class FlyRunSim(PipelineEnv):
         rng0, rng1, rng2 = jax.random.split(rng, 3)
         
         ##### Handle Additional Info #####
-        if 'command' not in info:
-            info['command'] = jp.zeros(3)
         if 'last_act' not in info:
             info['last_act'] = jp.zeros(self._nu)
         if 'last_vel' not in info:
             info['last_vel'] = jp.zeros(self._nv-7)
         if 'rng' not in info:
             info['rng'] = rng0
+        if 'command' not in info:
+            info['command'] = self.sample_command(info["rng"])
         if 'step' not in info:
             info['step'] = 0
-            
+        
+
         low, hi = -self._reset_noise_scale, self._reset_noise_scale
 
         qpos = self.sys.qpos0 + jax.random.uniform(
@@ -709,6 +711,7 @@ class FlyRunSim(PipelineEnv):
         metrics = {
             'total_dist': zero,
             'tracking_lin_vel': zero,
+            'tracking_ang_vel': zero,
             'ang_vel_xy': zero,
             'lin_vel_z': zero,
             'orientation': zero,
@@ -726,7 +729,10 @@ class FlyRunSim(PipelineEnv):
         rng, cmd_rng = jax.random.split(state.info['rng'], 2)
 
         data0 = state.pipeline_state
-        data = self.pipeline_step(data0, action)
+        # physics step
+        motor_targets = self._default_pose + action * self._action_scale
+        data = self.pipeline_step(data0, motor_targets)
+        # data = self.pipeline_step(data0, action)
 
         info = state.info.copy()
         
@@ -736,7 +742,7 @@ class FlyRunSim(PipelineEnv):
         fall = 1.0 - is_healthy
         
         joint_angles = data.q[7:]
-        joint_vel = data.qd[7:]  ##### need to restrict to only legs
+        joint_vel = data.qd[7:]
         x, xd = data.x, data.xd
         
         reference_obs, proprioceptive_obs= self._get_obs(data, info, state.obs)
@@ -749,8 +755,12 @@ class FlyRunSim(PipelineEnv):
         nan = jp.where(num_nans > 0, 1.0, 0.0)
         done = jp.max(jp.array([nan, fall]))
 
-        command = self.sample_command(info["rng"])
-        tracking_lin_vel = (self._tracking_lin_vel_weight * self._reward_tracking_lin_vel(command, x, xd))
+        # Tracking of linear velocity commands (xy axes)
+        local_vel = brax_math.rotate(xd.vel[0], brax_math.quat_inv(x.rot[0]))
+        lin_vel_error = jp.sum(jp.square(info['command'][:2] - local_vel[:2]))
+        lin_vel_reward = jp.exp(-lin_vel_error / 0.25)
+        info['bodypos_distance'] = lin_vel_reward 
+        tracking_lin_vel = self._tracking_lin_vel_weight * lin_vel_reward
         tracking_ang_vel = self._tracking_ang_vel_weight * self._reward_tracking_ang_vel(info['command'], x, xd)
         ang_vel_xy = self._ang_vel_xy_weight * self._reward_ang_vel_xy(xd)
         lin_vel_z = self._lin_vel_z_weight * self._reward_lin_vel_z(xd)
@@ -796,6 +806,7 @@ class FlyRunSim(PipelineEnv):
         state.metrics.update(
             total_dist=brax_math.normalize(x.pos[self._thorax_idx])[1],
             tracking_lin_vel=tracking_lin_vel,
+            tracking_ang_vel=tracking_ang_vel,
             ang_vel_xy=ang_vel_xy,
             lin_vel_z=lin_vel_z,
             orientation=orientation,
@@ -908,7 +919,7 @@ class FlyRunSim(PipelineEnv):
         )
 
     def _reward_termination(self, done: jax.Array, step: jax.Array) -> jax.Array:
-        return (done<0.5) & (step < self._clip_length)
+        return (done>0.5) & (step < self._clip_length)
 
     def render(
         self,

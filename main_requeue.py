@@ -162,7 +162,7 @@ def main(cfg: DictConfig) -> None:
                 value_hidden_layer_sizes=cfg.train['value_hidden_layer_sizes'],
             ),
             restore_checkpoint_path=restore_checkpoint,
-            freeze_fn=create_mask if cfg.train['freeze_encoder'] == False else None,
+            freeze_fn=None if (cfg.train['freeze_encoder'] == False) else create_mask,
         )
 
 
