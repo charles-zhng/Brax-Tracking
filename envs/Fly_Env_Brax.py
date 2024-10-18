@@ -86,9 +86,9 @@ class FlyTracking(PipelineEnv):
     ):
         
         # Convert to torque actuators
-        if torque_actuators:
-            from pathlib import Path
-            mjcf_path = (Path(mjcf_path).parent / 'fruitfly_force_fast.xml').as_posix()
+        # if torque_actuators:
+        #     from pathlib import Path
+        #     mjcf_path = (Path(mjcf_path).parent / 'fruitfly_force_fast.xml').as_posix()
             
         root = mjcf_dm.from_path(mjcf_path)
 

@@ -1,13 +1,13 @@
 name: Flybody
-dname: fly_freejnt_force
+dname: fly_freejnt_amp
 camera: 1
-rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_pair.xml
+rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_pair_amp.xml
 stac_path: ${paths.data_dir}/transform_tethered.p
-clip_idx: 0.p
+clip_idx: amp_data.p
 ref_traj_length: 5
 env_args:
-  clip_length: 1001
-  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" 
+  clip_length: 1500
+  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast_amp.xml" 
   physics_timestep: 2e-4
   solver: cg
   iterations: 6
@@ -36,21 +36,12 @@ env_args:
   free_jnt: True
   inference_mode: False
   end_eff_names:
-    - claw_T1_left
     - claw_T1_right
     - claw_T2_left
     - claw_T2_right
     - claw_T3_left
     - claw_T3_right
   body_names:
-    - coxa_T1_left
-    - femur_T1_left
-    - tibia_T1_left
-    - tarsus_T1_left
-    - tarsus2_T1_left
-    - tarsus3_T1_left
-    - tarsus4_T1_left
-    - claw_T1_left
     - coxa_T1_right
     - femur_T1_right
     - tibia_T1_right
@@ -92,12 +83,6 @@ env_args:
     - tarsus4_T3_right
     - claw_T3_right
   joint_names:
-    - coxa_flexion_T1_left
-    - coxa_twist_T1_left
-    - femur_twist_T1_left
-    - femur_T1_left
-    - tibia_T1_left
-    - tarsus_T1_left
     - coxa_flexion_T1_right
     - coxa_twist_T1_right
     - femur_twist_T1_right

@@ -77,8 +77,8 @@ def main(cfg: DictConfig) -> None:
             cfg.paths[k].mkdir(parents=True, exist_ok=True)
     env_cfg = cfg.dataset
     env_args = cfg.dataset.env_args
-    # reference_path = cfg.paths.data_dir / f"clips/{env_cfg['clip_idx']}.p"
-    reference_path = cfg.paths.data_dir / f"clips/all_clips_batch_interp.p"
+    # reference_path = cfg.paths.data_dir / f"clips/{env_cfg['clip_idx']}.p" all_clips_batch_interp.p
+    reference_path = cfg.paths.data_dir / f"clips/{env_cfg['clip_idx']}"
     reference_path.parent.mkdir(parents=True, exist_ok=True)
 
     #### TODO: Need to handle this better
