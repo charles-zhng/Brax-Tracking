@@ -848,69 +848,50 @@
   <!-- </tendon> -->
 
   <actuator>
-    <!-- <motor name="coxa_flexion_T1_left"   class="flexion_coxa_T1" joint="coxa_flexion_T1_left"/>
-    <motor name="coxa_twist_T1_left"    class="twist_coxa_T1" joint="coxa_twist_T1_left"/> -->
-    <!-- <motor name="coxa_T1_left"          class="extend_coxa_T1" joint="coxa_T1_left"/> -->
-    <!-- <motor name="femur_T1_left"         class="extend_femur_T1" joint="femur_T1_left"/>
+    <motor name="coxa_flexion_T1_left"   class="flexion_coxa_T1" joint="coxa_flexion_T1_left"/>
+    <motor name="coxa_twist_T1_left"    class="twist_coxa_T1" joint="coxa_twist_T1_left"/>
+    <motor name="femur_T1_left"         class="extend_femur_T1" joint="femur_T1_left"/>
     <motor name="femur_twist_T1_left"   class="twist_femur" joint="femur_twist_T1_left"/>
     <motor name="tibia_T1_left"         class="extend_tibia" joint="tibia_T1_left"/>
-    <motor name="tarsus_T1_left"        class="extend_tarsus_T1" joint="tarsus_T1_left"/> -->
-    <!-- <motor name="tarsus2_T1_left"       class="extend_tarsus" ctrlrange="-0.9 0.9" tendon="tarsus2_T1_left"/> -->
+    <motor name="tarsus_T1_left"        class="extend_tarsus_T1" joint="tarsus_T1_left"/>
+    
     <motor name="coxa_flexion_T1_right"  class="flexion_coxa_T1" joint="coxa_flexion_T1_right"/>
     <motor name="coxa_twist_T1_right"   class="twist_coxa_T1" joint="coxa_twist_T1_right"/>
-    <!-- <motor name="coxa_T1_right"         class="extend_coxa_T1" joint="coxa_T1_right"/> -->
     <motor name="femur_T1_right"        class="extend_femur_T1" joint="femur_T1_right"/>
     <motor name="femur_twist_T1_right"  class="twist_femur" joint="femur_twist_T1_right"/>
     <motor name="tibia_T1_right"        class="extend_tibia" joint="tibia_T1_right"/>
     <motor name="tarsus_T1_right"       class="extend_tarsus_T1" joint="tarsus_T1_right"/>
-    <!-- <motor name="tarsus2_T1a_right"     class="extend_tarsus" ctrlrange="-0.9 0.9" tendon="tarsus2_T1_right"/> -->
     <motor name="coxa_flexion_T2_left"   class="flexion_coxa_T2" joint="coxa_flexion_T2_left"/>
     <motor name="coxa_twist_T2_left"    class="twist_coxa_T2" joint="coxa_twist_T2_left"/>
-    <!-- <motor name="coxa_T2_left"          class="extend_coxa_T2" joint="coxa_T2_left"/> -->
     <motor name="femur_T2_left"         class="extend_femur_T2" joint="femur_T2_left"/>
     <motor name="femur_twist_T2_left"   class="twist_femur_T2" joint="femur_twist_T2_left"/>
     <motor name="tibia_T2_left"         class="extend_tibia_T2" joint="tibia_T2_left"/>
     <motor name="tarsus_T2_left"        class="extend_tarsus_T2" joint="tarsus_T2_left"/>
-    <!-- <motor name="tarsus2_T2_left"       class="extend_tarsus" ctrlrange="-0.9 0.9" tendon="tarsus2_T2_left"/> -->
     <motor name="coxa_flexion_T2_right"  class="flexion_coxa_T2" joint="coxa_flexion_T2_right"/>
     <motor name="coxa_twist_T2_right"   class="twist_coxa_T2" joint="coxa_twist_T2_right"/>
-    <!-- <motor name="coxa_T2_right"         class="extend_coxa_T2" joint="coxa_T2_right"/> -->
     <motor name="femur_T2_right"        class="extend_femur_T2" joint="femur_T2_right"/>
     <motor name="femur_twist_T2_right"  class="twist_femur_T2" joint="femur_twist_T2_right"/>
     <motor name="tibia_T2_right"        class="extend_tibia_T2" joint="tibia_T2_right"/>
     <motor name="tarsus_T2_right"       class="extend_tarsus_T2" joint="tarsus_T2_right"/>
-    <!-- <motor name="tarsus2_T2_right"      class="extend_tarsus" ctrlrange="-0.9 0.9" tendon="tarsus2_T2_right"/> -->
     <motor name="coxa_flexion_T3_left"   class="flexion_coxa_T3" joint="coxa_flexion_T3_left"/>
     <motor name="coxa_twist_T3_left"    class="twist_coxa_T3" joint="coxa_twist_T3_left"/>
-    <!-- <motor name="coxa_T3_left"          class="extend_coxa_T3" joint="coxa_T3_left"/> -->
     <motor name="femur_T3_left"         class="extend_femur_T3" joint="femur_T3_left"/>
     <motor name="femur_twist_T3_left"   class="twist_femur_T3" joint="femur_twist_T3_left"/>
     <motor name="tibia_T3_left"         class="extend_tibia_T3" joint="tibia_T3_left"/>
     <motor name="tarsus_T3_left"        class="extend_tarsus_T3" joint="tarsus_T3_left"/>
-    <!-- <motor name="tarsus2_T3_left"       class="extend_tarsus" ctrlrange="-0.9 0.9" tendon="tarsus2_T3_left"/> -->
     <motor name="coxa_flexion_T3_right"  class="flexion_coxa_T3" joint="coxa_flexion_T3_right"/>
     <motor name="coxa_twist_T3_right"   class="twist_coxa_T3" joint="coxa_twist_T3_right"/>
-    <!-- <motor name="coxa_T3_right"         class="extend_coxa_T3" joint="coxa_T3_right"/> -->
     <motor name="femur_T3_right"        class="extend_femur_T3" joint="femur_T3_right"/>
     <motor name="femur_twist_T3_right"  class="twist_femur_T3" joint="femur_twist_T3_right"/>
     <motor name="tibia_T3_right"        class="extend_tibia_T3" joint="tibia_T3_right"/>
     <motor name="tarsus_T3_right"       class="extend_tarsus_T3" joint="tarsus_T3_right"/>
-    <!-- <motor name="tarsus2_T3_right"      class="extend_tarsus" ctrlrange="-0.9 0.9" tendon="tarsus2_T3_right"/> -->
-    <!-- <adhesion name="adhere_labrum_left" class="adhesion_labrum" body="labrum_left"/>
-    <adhesion name="adhere_labrum_right" class="adhesion_labrum" body="labrum_right"/>
-    <adhesion name="adhere_claw_T1_left" class="adhesion_claw" body="claw_T1_left"/>
-    <adhesion name="adhere_claw_T1_right" class="adhesion_claw" body="claw_T1_right"/>
-    <adhesion name="adhere_claw_T2_left" class="adhesion_claw" body="claw_T2_left"/>
-    <adhesion name="adhere_claw_T2_right" class="adhesion_claw" body="claw_T2_right"/>
-    <adhesion name="adhere_claw_T3_left" class="adhesion_claw" body="claw_T3_left"/>
-    <adhesion name="adhere_claw_T3_right" class="adhesion_claw" body="claw_T3_right"/> -->
   </actuator>
 
   <sensor>
     <!-- <accelerometer name="accelerometer" site="thorax"/>
     <gyro name="gyro" site="thorax"/>
     <velocimeter name="velocimeter" site="thorax"/> --> 
-    <!-- <force name="force_tarsus_T1_left"  site="claw_T1_left"/> -->
+    <force name="force_tarsus_T1_left"  site="claw_T1_left"/>
     <force name="force_tarsus_T1_right" site="claw_T1_right"/>
     <force name="force_tarsus_T2_left"  site="claw_T2_left"/>
     <force name="force_tarsus_T2_right" site="claw_T2_right"/>

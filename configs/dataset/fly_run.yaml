@@ -3,7 +3,7 @@ dname: fly_run
 camera: 1
 rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml
 stac_path: ${paths.data_dir}/transform_tethered.p
-clip_idx: 0
+clip_idx: all_clips_batch_interp.p
 env_args:
   clip_length: 1001
   mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" 

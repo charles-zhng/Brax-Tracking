@@ -54,7 +54,7 @@ class FlyTracking(PipelineEnv):
         n_clips: int = 1,
         clip_length: int = 1001,
         mocap_hz: int = 500,
-        mjcf_path: str = "./assets/fruitfly/fruitfly_force_fast.xml",
+        mjcf_path: str = None,
         torque_actuators: bool = False,
         physics_timestep: float = 2e-4,
         ref_len: int = 5,
@@ -86,12 +86,12 @@ class FlyTracking(PipelineEnv):
     ):
         
         # Convert to torque actuators
-        # if torque_actuators:
-        #     from pathlib import Path
-        #     mjcf_path = (Path(mjcf_path).parent / 'fruitfly_force_fast.xml').as_posix()
+        if (torque_actuators) and (mjcf_path is None):
+            from pathlib import Path
+            mjcf_path = (Path(mjcf_path).parent / 'fruitfly_force_fast.xml').as_posix()
             
         root = mjcf_dm.from_path(mjcf_path)
-
+        print('Loaded Model:', mjcf_path)
             # for actuator in root.find_all("actuator"):
             #     actuator.gainprm = [actuator.forcerange[1]]
             #     del actuator.biastype
@@ -153,6 +153,7 @@ class FlyTracking(PipelineEnv):
             ]
         )
         self._n_clips = n_clips
+        self._clip_length = clip_length
         self._reference_clip = reference_clip
         self._bad_pose_dist = bad_pose_dist
         self._too_far_dist = too_far_dist
