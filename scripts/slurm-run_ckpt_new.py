@@ -19,7 +19,18 @@ def submit(num_gpus, partition, job_name, mem, cpus, time, note, train, dataset,
     """
     Construct and submit the SLURM script with the specified parameters.
     """
-    
+        # Define GPU configurations
+    gpu_configs = {
+        'a100': 'gpu:a100:8',
+        'h100': 'nvidia_h100_80gb_hbm3',
+        'a40': 'gpu:a40:8',
+        'l40': 'gpu:l40:8', 
+        'l40s': 'gpu:l40s:8', 
+        # Add more GPU types here if needed
+    }
+
+    # gpu_resource = f"gpu:{gpu_configs[gpu_type]}:{num_gpus}"
+
     """Submit job to cluster."""
     script = f"""#!/bin/bash
 #SBATCH --job-name={job_name}    
@@ -97,6 +108,7 @@ if __name__ == "__main__":
 ##### Saving commands #####
 #### cancel all jobs: squeue -u $USER -h | awk '{print $1}' | xargs scancel
 # python scripts/slurm-run_ckpt_new.py --dataset=fly_freejnt --num_envs=2048 --note='hyak_ckpt'
-# python scripts/slurm-run_ckpt_new.py --partition=gpu-l40s --dataset=fly_freejnt --num_envs=2048 --num_gpus=2 --note='hyak'
+# python scripts/slurm-run_ckpt_new.py --partition=gpu-l40s --train=train_fly_multiclip --dataset=fly_multiclip --num_envs=2048 --num_gpus=2 --note='hyak'
 
 # python scripts/slurm-run_ckpt_new.py --train=train_fly_run --dataset=fly_run --num_envs=2048 --note='hyak_ckpt'
+# python scripts/slurm-run_ckpt_new.py --partition=gpu-l40s --train=train_fly_multiclip --dataset=fly_multiclip --num_envs=2048 --note='hyak_ckpt' 

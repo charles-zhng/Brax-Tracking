@@ -58,6 +58,7 @@ class RenderRolloutWrapperTracking(Wrapper):
             "angvel_distance": 0.0,
             "bodypos_distance": 0.0,
             "endeff_distance": 0.0,
+            "prev_ctrl": jp.zeros((self.sys.nu,)),
         }
 
         return self.reset_from_clip(rng, info)
