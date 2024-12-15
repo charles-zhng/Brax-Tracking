@@ -9,6 +9,7 @@ from brax.envs.wrappers.training import (
 )
 import jax
 from jax import numpy as jp
+from mujoco import mjx
 
 
 def wrap(
@@ -40,6 +41,30 @@ def wrap(
     return env
 
 
+class RenderRolloutWrapperTracking(Wrapper):
+    """Always resets to 0"""
+
+    def reset(self, rng: jax.Array) -> State:
+        _, clip_rng, rng = jax.random.split(rng, 3)
+
+        clip_idx = jax.random.randint(clip_rng, (), 0, self._n_clips)
+        info = {
+            "clip_idx": clip_idx, 
+            "cur_frame": 0,
+            "steps_taken_cur_frame": 0,
+            "summed_pos_distance": 0.0,
+            "quat_distance": 0.0,
+            "joint_distance": 0.0,
+            "angvel_distance": 0.0,
+            "bodypos_distance": 0.0,
+            "endeff_distance": 0.0,
+            "prev_ctrl": jp.zeros((self.sys.nu,)),
+        }
+
+        return self.reset_from_clip(rng, info)
+
+
+# Single clip
 class AutoResetWrapperTracking(Wrapper):
     """Automatically resets Brax envs that are done."""
 
@@ -79,47 +104,3 @@ class AutoResetWrapperTracking(Wrapper):
         )
         return state.replace(pipeline_state=pipeline_state, obs=obs)
 
-class RenderRolloutWrapperTracking(Wrapper):
-    """Always resets to 0"""
-
-    def reset(self, rng: jax.Array) -> State:
-        rng, rng1, rng2 = jax.random.split(rng, 3)
-        info = {
-            "cur_frame": 0,
-            "steps_taken_cur_frame": 0,
-            "summed_pos_distance": 0.0,
-            "quat_distance": 0.0,
-            "joint_distance": 0.0,
-        }
-
-        low, hi = -self._reset_noise_scale, self._reset_noise_scale
-
-        # Add pos (without z height)
-        new_qpos = jp.array(self.sys.qpos0)
-
-        # Add quat
-        # new_qpos = qpos_with_pos.at[3:7].set(self._track_quat[0])
-
-        # Add noise
-        qpos = new_qpos + jax.random.uniform(rng1, (self.sys.nq,), minval=low, maxval=hi)
-        qvel = jax.random.uniform(rng2, (self.sys.nv,), minval=low, maxval=hi)
-
-        data = self.pipeline_init(qpos, qvel)
-
-        obs = self._get_obs(data, 0)
-        reward, done, zero = jp.zeros(3)
-        metrics = {
-            "pos_reward": zero,
-            "quat_reward": zero,
-            "joint_reward": zero,
-            "angvel_reward": zero,
-            "bodypos_reward": zero,
-            "endeff_reward": zero,
-            "reward_quadctrl": zero,
-            "reward_alive": zero,
-            "too_far": zero,
-            "bad_pose": zero,
-            "bad_quat": zero,
-            "fall": zero,
-        }
-        return State(data, obs, reward, done, metrics, info)

@@ -1,6 +1,5 @@
 """Preprocess mocap data for mjx"""
 
-import os
 import jax
 from jax import jit
 from jax import numpy as jp
@@ -19,7 +18,8 @@ from collections import defaultdict
 from typing import Text, Union, List
 import h5py
 import pickle
-import utils.io_dict_to_hdf5 as ioh5
+
+
 @struct.dataclass
 class ReferenceClip:
     """This dataclass is used to store the trajectory in the env."""
@@ -64,14 +64,9 @@ def process_clip_to_train(
         ref_steps (Tuple, optional): _description_. Defaults to (1, 2, 3, 4, 5, 6, 7, 8, 9, 10).
     """
     # Load mocap data from a file.
-    _, ext = os.path.splitext(stac_path)
-    if ext == ".h5":
-        data = ioh5.load(stac_path)
-        mocap_qpos = jp.array(data["qpos"])[start_step : start_step + clip_length]
-    else:
-        with open(stac_path, "rb") as file:
-            d = pickle.load(file)
-            mocap_qpos = jp.array(d["qpos"])[start_step : start_step + clip_length]
+    with open(stac_path, "rb") as file:
+        d = pickle.load(file)
+        mocap_qpos = jp.array(d["qpos"])[start_step : start_step + clip_length]
 
     # Load rodent mjcf and rescale, then get the mj_model from that.
     # TODO: make this all work in mjx? james cotton did rescaling with mjx model:
@@ -124,13 +119,12 @@ def process_clip(
     clip = extract_features(mjx_model, mjx_data, clip, mocap_qpos)
     # Padding for velocity corner case.
     mocap_qpos = jp.concatenate([mocap_qpos, mocap_qpos[-1, jp.newaxis, :]], axis=0)
+
     # Calculate qvel, clip.
-    if mjx_model.jnt_type[0] != 0:
-        mocap_qpos = jp.concatenate([mocap_qpos, jp.zeros((mocap_qpos.shape[0],6))], axis=1)
     mocap_qvel = compute_velocity_from_kinematics(mocap_qpos, dt)
     vels = mocap_qvel[:, 6:]
     clipped_vels = jp.clip(vels, -max_qvel, max_qvel)
-        
+
     mocap_qvel = mocap_qvel.at[:, 6:].set(clipped_vels)
     clip = clip.replace(
         velocity=mocap_qvel[:, :3],
@@ -148,10 +142,7 @@ def extract_features(mjx_model, mjx_data, clip, mocap_qpos):
         qpos = mjx_data.qpos
         xpos = mjx_data.xpos
         xquat = mjx_data.xquat
-        if mjx_model.jnt_type[0] == 0:
-            return mjx_data, (qpos[:3], qpos[3:7], qpos[7:], xpos, xquat)
-        else:
-            return mjx_data, (None, None, qpos, xpos, xquat)
+        return mjx_data, (qpos[:3], qpos[3:7], qpos[7:], xpos, xquat)
 
     mjx_data, (position, quaternion, joints, body_positions, body_quaternions) = (
         jax.lax.scan(
@@ -285,7 +276,7 @@ def load_reference_clip_from_h5(filename: str, clip_names: Union[List[str], str]
 
         # Stack them as jax arrays
         for key in aggregated.keys():
-            aggregated[key] = jp.stack(aggregated[key])
+            aggregated[key] = [jp.array(aggregated[key][n]) for n in range(len(aggregated[key]))]
 
         # Set the values in the ReferenceClip
         clip = clip.replace(**aggregated)

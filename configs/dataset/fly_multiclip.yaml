@@ -1,23 +1,24 @@
 name: Flybody
-dname: fly_freejnt
+dname: fly_multiclip
 camera: 1
 rendering_mjcf: ${paths.cwd_dir}/assets/fruitfly/fruitfly_force_pair.xml
 stac_path: ${paths.data_dir}/transform_tethered.p
-clip_idx: 0.p
+clip_idx: all_clips_turn_interp_small.p
 ref_traj_length: 5
 env_args:
-  clip_length: 1001
-  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_fast.xml" 
+  clip_length: 600
+  mjcf_path: "${paths.cwd_dir}/assets/fruitfly/fruitfly_force_fast.xml" 
   physics_timestep: 2e-4
   solver: cg
-  iterations: 6
-  ls_iterations: 6
-  torque_actuators: False
+  iterations: 8
+  ls_iterations: 8
+  torque_actuators: True
   physics_steps_per_control_step: 10
   too_far_dist: 0.01
   bad_pose_dist: 5.0 
   bad_quat_dist: 0.075 
   ctrl_cost_weight: 0.02
+  ctrl_diff_cost_weight: 0.02
   pos_reward_weight: 1.0
   quat_reward_weight: 1.0
   joint_reward_weight: 1.0

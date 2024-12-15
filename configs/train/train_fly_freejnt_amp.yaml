@@ -1,4 +1,4 @@
-name: train_fly_freejnt
+name: train_fly_freejnt_amp
 version: ${resolve_default:debug,${..version}}
 gpu: ${resolve_default:0,${..gpu}}
 wandb_project: "eabe_debug"
@@ -11,7 +11,7 @@ num_timesteps: 10_000_000_000
 eval_every: 200_000_000
 num_resets_per_eval: 1
 reward_scaling: 1
-episode_length: 1001
+episode_length: 1500
 normalize_observations: True
 action_repeat: 1
 clipping_epsilon: 0.2
@@ -20,7 +20,8 @@ num_minibatches: 32
 num_updates_per_batch: 8
 discounting: 0.95
 learning_rate: 1e-4
-kl_weight: 1e-3
+kl_weight: 1e-2
+kl_loss: True
 entropy_cost: 1e-2
 batch_size: ${train.num_envs}
 seed: 0

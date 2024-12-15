@@ -465,10 +465,9 @@
         <!-- <joint name="haltere_right"/> -->
         <geom name="haltere_right" pos="-0.0528 -0.101 0.0405" quat="0.28 0.206 0.829 0.438" mesh="haltere_right"/>
       </body>
-      <body name="coxa_T1_left" childclass="leg" pos="0.0317 0.0209 -0.0272" quat="-0.532 0.787 -0.311 -0.0229">
+      <!-- <body name="coxa_T1_left" childclass="leg" pos="0.0317 0.0209 -0.0272" quat="-0.532 0.787 -0.311 -0.0229">
         <joint name="coxa_flexion_T1_left" class="flexion_coxa_T1"/>
         <joint name="coxa_twist_T1_left" class="twist_coxa_T1"/>
-        <!-- <joint name="coxa_T1_left" class="extend_coxa_T1"/> -->
         <geom name="coxa_T1_left" pos="0.0131 0.104 0.0119" quat="0.0229 -0.311 -0.787 0.532" mesh="coxa_T1_left"/>
         <geom name="coxa_T1_left_collision" class="collision" type="ellipsoid" size="0.00679 0.00752 0.0208" pos="-2.04e-05 0.0261 -0.000454" quat="-0.417 -0.383 -0.532 0.63"/>
         <site name="tracking[coxa_T1_left]" pos="0 0 0" size="0.005" group="3" rgba="0 1 0 1"/>
@@ -489,19 +488,15 @@
               <geom name="tarsus_T1_left_collision" class="collision" size="0.00204" fromto="0 0 0 -0.000165 0.0235 0.00174"/>
               <site name="tracking[tarsus_T1_left]" pos="0 0 0" size="0.005" group="3" rgba="0 1 0 1"/>
               <body name="tarsus2_T1_left" pos="-0.000165 0.0235 0.00174">
-                <!-- <joint name="tarsus2_T1_left" class="extend_tarsus"/> -->
                 <geom name="tarsus2_T1_left" pos="0.00813 -0.0258 -0.118" quat="0.373 0.231 0.468 -0.767" mesh="tarsus_T1_2_left"/>
                 <geom name="tarsus2_T1_left_collision" class="collision" size="0.00159" fromto="0 0 0 0.000113 0.0136 0.000556"/>
                 <body name="tarsus3_T1_left" pos="0.000113 0.0136 0.000556">
-                  <!-- <joint name="tarsus3_T1_left" class="extend_tarsus"/> -->
                   <geom name="tarsus3_T1_left" pos="0.00802 -0.0394 -0.119" quat="-0.373 -0.231 -0.468 0.767" mesh="tarsus_T1_3_left"/>
                   <geom name="tarsus3_T1_left_collision" class="collision" size="0.00149" fromto="0 0 0 -0.000255 0.00909 0.0002"/>
                   <body name="tarsus4_T1_left" pos="-0.000255 0.00909 0.0002">
-                    <!-- <joint name="tarsus4_T1_left" class="extend_tarsus"/> -->
                     <geom name="tarsus4_T1_left" pos="0.00827 -0.0485 -0.119" quat="0.373 0.231 0.468 -0.767" mesh="tarsus_T1_4_left"/>
                     <geom name="tarsus4_T1_left_collision" class="collision" size="0.00148" fromto="0 0 0 -7.12e-05 0.00906 -0.00081"/>
                     <body name="claw_T1_left" pos="-7.12e-05 0.00906 -0.00081">
-                      <!-- <joint name="tarsus5_T1_left" class="extend_tarsus"/> -->
                       <geom name="tarsal_claw_T1_left" material="brown" pos="0.00835 -0.0575 -0.118" quat="-0.373 -0.231 -0.468 0.767" mesh="tarsal_claw_T1_left_brown"/>
                       <geom name="tarsal_claw_T1_left_collision" class="adhesion-collision" type="capsule" size="0.00199" fromto="0 0 0 -7.12e-05 0.00906 -0.00081"/>
                       <site name="claw_T1_left" class="adhesion-collision" size="0.00219" fromto="0 0 0 -7.12e-05 0.00906 -0.00081"/>
@@ -513,7 +508,7 @@
             </body>
           </body>
         </body>
-      </body>
+      </body> -->
       <body name="coxa_T1_right" childclass="leg" pos="0.0317 -0.0209 -0.0272" quat="0.319 0.011 -0.543 -0.777">
         <joint name="coxa_flexion_T1_right" class="flexion_coxa_T1"/>
         <joint name="coxa_twist_T1_right" class="twist_coxa_T1"/>
@@ -873,16 +868,16 @@
     <exclude name="wing_right_abdomen_2" body1="wing_right" body2="abdomen_2"/>
     <exclude name="wing_right_abdomen_3" body1="wing_right" body2="abdomen_3"/>
     <exclude name="wing_left_wing_right" body1="wing_left" body2="wing_right"/>
-    <exclude name="thorax_coxa_T1_left" body1="thorax" body2="coxa_T1_left"/>
+    <!-- <exclude name="thorax_coxa_T1_left" body1="thorax" body2="coxa_T1_left"/> -->
     <exclude name="thorax_coxa_T1_right" body1="thorax" body2="coxa_T1_right"/>
     <exclude name="thorax_coxa_T2_left" body1="thorax" body2="coxa_T2_left"/>
     <exclude name="thorax_coxa_T2_right" body1="thorax" body2="coxa_T2_right"/>
     <exclude name="thorax_coxa_T3_left" body1="thorax" body2="coxa_T3_left"/>
     <exclude name="thorax_coxa_T3_right" body1="thorax" body2="coxa_T3_right"/>
-    <exclude name="coxa_T1_left_coxa_T1_right" body1="coxa_T1_left" body2="coxa_T1_right"/>
+    <!-- <exclude name="coxa_T1_left_coxa_T1_right" body1="coxa_T1_left" body2="coxa_T1_right"/>
     <exclude name="coxa_T1_left_femur_T1_right" body1="coxa_T1_left" body2="femur_T1_right"/>
     <exclude name="femur_T1_left_coxa_T1_right" body1="femur_T1_left" body2="coxa_T1_right"/>
-    <exclude name="femur_T1_left_femur_T1_right" body1="femur_T1_left" body2="femur_T1_right"/>
+    <exclude name="femur_T1_left_femur_T1_right" body1="femur_T1_left" body2="femur_T1_right"/> -->
     <exclude name="coxa_T2_left_coxa_T2_right" body1="coxa_T2_left" body2="coxa_T2_right"/>
     <exclude name="coxa_T2_left_femur_T2_right" body1="coxa_T2_left" body2="femur_T2_right"/>
     <exclude name="femur_T2_left_coxa_T2_right" body1="femur_T2_left" body2="coxa_T2_right"/>
@@ -953,13 +948,13 @@
   <!-- </tendon> -->
 
   <actuator>
-    <motor name="coxa_flexion_T1_left"   class="flexion_coxa_T1" joint="coxa_flexion_T1_left"/>
-    <motor name="coxa_twist_T1_left"    class="twist_coxa_T1" joint="coxa_twist_T1_left"/>
+    <!-- <motor name="coxa_flexion_T1_left"   class="flexion_coxa_T1" joint="coxa_flexion_T1_left"/>
+    <motor name="coxa_twist_T1_left"    class="twist_coxa_T1" joint="coxa_twist_T1_left"/> -->
     <!-- <motor name="coxa_T1_left"          class="extend_coxa_T1" joint="coxa_T1_left"/> -->
-    <motor name="femur_T1_left"         class="extend_femur_T1" joint="femur_T1_left"/>
+    <!-- <motor name="femur_T1_left"         class="extend_femur_T1" joint="femur_T1_left"/>
     <motor name="femur_twist_T1_left"   class="twist_femur" joint="femur_twist_T1_left"/>
     <motor name="tibia_T1_left"         class="extend_tibia" joint="tibia_T1_left"/>
-    <motor name="tarsus_T1_left"        class="extend_tarsus_T1" joint="tarsus_T1_left"/>
+    <motor name="tarsus_T1_left"        class="extend_tarsus_T1" joint="tarsus_T1_left"/> -->
     <!-- <motor name="tarsus2_T1_left"       class="extend_tarsus" ctrlrange="-0.9 0.9" tendon="tarsus2_T1_left"/> -->
     <motor name="coxa_flexion_T1_right"  class="flexion_coxa_T1" joint="coxa_flexion_T1_right"/>
     <motor name="coxa_twist_T1_right"   class="twist_coxa_T1" joint="coxa_twist_T1_right"/>
